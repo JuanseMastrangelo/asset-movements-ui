@@ -1,6 +1,8 @@
 "use client"
 
 import { ChevronRight, type LucideIcon } from "lucide-react"
+import { useLocation } from "react-router-dom"
+import { useState, useEffect } from "react"
 
 import {
   Collapsible,
@@ -32,6 +34,22 @@ export function NavMain({
     }[]
   }[]
 }) {
+  const location = useLocation()
+  const [closedItems, setClosedItems] = useState<string[]>([])
+
+  // Inicializar todos los items como abiertos
+  useEffect(() => {
+    setClosedItems([])
+  }, []) // Solo se ejecuta una vez al montar el componente
+
+  const handleToggle = (title: string, isOpen: boolean) => {
+    setClosedItems(prev => 
+      isOpen 
+        ? prev.filter(item => item !== title) // Remover del array de cerrados
+        : [...prev, title] // Agregar al array de cerrados
+    )
+  }
+
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Platform</SidebarGroupLabel>
@@ -40,7 +58,8 @@ export function NavMain({
           <Collapsible
             key={item.title}
             asChild
-            defaultOpen={item.isActive}
+            open={!closedItems.includes(item.title)} // Abierto si no está en el array de cerrados
+            onOpenChange={(isOpen) => handleToggle(item.title, isOpen)}
             className="group/collapsible"
           >
             <SidebarMenuItem>
@@ -55,7 +74,10 @@ export function NavMain({
                 <SidebarMenuSub>
                   {item.items?.map((subItem) => (
                     <SidebarMenuSubItem key={subItem.title}>
-                      <SidebarMenuSubButton asChild>
+                      <SidebarMenuSubButton 
+                        asChild
+                        isActive={location.pathname === subItem.url}
+                      >
                         <a href={subItem.url}>
                           <span>{subItem.title}</span>
                         </a>

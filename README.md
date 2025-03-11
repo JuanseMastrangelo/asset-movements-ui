@@ -1,60 +1,94 @@
-# Asset Movements
+# Asset Movements UI
 
-## 🎉 Features
+Interfaz de usuario para el sistema de gestión de activos y movimientos.
 
-- **React** - A JavaScript library for building user interfaces.
-- **Vite** - A fast, opinionated frontend build tool.
-- **TypeScript** - A typed superset of JavaScript that compiles to plain JavaScript.
-- **Tailwind CSS** - A utility-first CSS framework.
-- **Tailwind Prettier Plugin** - A Prettier plugin for formatting Tailwind CSS classes.
-- **ESLint** - A pluggable linting utility for JavaScript and TypeScript.
-- **PostCSS** - A tool for transforming CSS with JavaScript.
-- **Autoprefixer** - A PostCSS plugin to parse CSS and add vendor prefixes.
-- **shadcn/ui** - Beautifully designed components that you can copy and paste into your apps.
+## Características
 
-## ⚙️ Prerequisites
+- Autenticación de usuarios (login/registro)
+- Gestión de activos
+- Interfaz moderna y responsiva
+- Integración con React Query para manejo de estado y caché
+- Protección de rutas
+- Diseño con Tailwind CSS y componentes de Radix UI
 
-Make sure you have the following installed on your development machine:
+## Requisitos
 
-- Node.js (version 16 or above)
-- pnpm (package manager)
+- Node.js 18 o superior
+- npm o yarn
 
-## 🚀 Getting Started
+## Instalación
 
-Follow these steps to get started with the react-vite-ui template:
-
-1. Clone the repository
-2. Navigate to the project directory
-3. Install the dependencies
-4. Start the development server
-
-## 📜 Available Scripts
-
-- pnpm dev - Starts the development server.
-- pnpm build - Builds the production-ready code.
-- pnpm lint - Runs ESLint to analyze and lint the code.
-- pnpm preview - Starts the Vite development server in preview mode.
-
-## 📂 Project Structure
-
-The project structure follows a standard React application layout:
-
-```python
-react-vite-ui/
-  ├── node_modules/      # Project dependencies
-  ├── public/            # Public assets
-  ├── src/               # Application source code
-  │   ├── pages/         # React pages
-  │   ├── components/    # React components
-  │   │   └── ui/        # shadc/ui components
-  │   ├── styles/        # CSS stylesheets
-  │   ├── lib/           # Utility functions
-  │   ├── App.tsx        # Application entry point
-  │   └── index.tsx      # Main rendering file
-  ├── eslint.config.js     # ESLint configuration
-  ├── index.html         # HTML entry point
-  ├── postcss.config.js  # PostCSS configuration
-  ├── tailwind.config.ts # Tailwind CSS configuration
-  ├── tsconfig.json      # TypeScript configuration
-  └── vite.config.ts     # Vite configuration
+1. Clonar el repositorio:
+```bash
+git clone https://github.com/tu-usuario/asset-movements-ui.git
+cd asset-movements-ui
 ```
+
+2. Instalar dependencias:
+```bash
+npm install
+# o
+yarn install
+```
+
+3. Crear archivo de variables de entorno:
+```bash
+cp .env.example .env
+```
+
+4. Configurar la URL de la API en el archivo `.env`:
+```
+VITE_API_URL=http://localhost:3000
+```
+
+## Desarrollo
+
+Para iniciar el servidor de desarrollo:
+
+```bash
+npm run dev
+# o
+yarn dev
+```
+
+La aplicación estará disponible en `http://localhost:5173`
+
+## Construcción
+
+Para crear una versión de producción:
+
+```bash
+npm run build
+# o
+yarn build
+```
+
+Los archivos de producción se generarán en el directorio `dist`
+
+## Estructura del Proyecto
+
+```
+src/
+  ├── components/     # Componentes reutilizables
+  ├── contexts/      # Contextos de React
+  ├── models/        # Interfaces y tipos
+  ├── pages/         # Páginas de la aplicación
+  ├── services/      # Servicios de API
+  ├── styles/        # Estilos globales
+  └── utils/         # Utilidades
+```
+
+## Tecnologías Utilizadas
+
+- React
+- TypeScript
+- Vite
+- React Query
+- React Router
+- Tailwind CSS
+- Radix UI
+- Axios
+
+## Licencia
+
+MIT
