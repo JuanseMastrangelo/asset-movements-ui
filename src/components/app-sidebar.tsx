@@ -27,6 +27,10 @@ const data = {
       url: "#",
       items: [
         {
+          title: "Transacciones",
+          url: "/transactions",
+        },
+        {
           title: "Inicio",
           url: "/",
         },

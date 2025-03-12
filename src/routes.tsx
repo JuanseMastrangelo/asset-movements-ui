@@ -8,6 +8,13 @@ import Assets from './pages/Assets';
 import { Transactions } from './pages/Transactions';
 
 const AppRoutes = () => {
+  const protectedRoutes = [
+    { path: "/", element: <Home /> },
+    { path: "/assets", element: <Assets /> },
+    { path: "/transactions/:id?", element: <Transactions /> },
+  ];
+
+  
   return (
     <Routes>
       {/* Rutas públicas */}
@@ -15,36 +22,17 @@ const AppRoutes = () => {
       <Route path="/register" element={<Register />} />
 
       {/* Rutas protegidas */}
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <Home />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/assets"
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <Assets />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/transactions"
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <Transactions />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
+      {protectedRoutes.map(({ path, element }) => (
+        <Route
+          key={path}
+          path={path}
+          element={
+            <ProtectedRoute>
+              <Layout>{element}</Layout>
+            </ProtectedRoute>
+          }
+        />
+      ))}
 
       {/* Ruta por defecto */}
       <Route path="*" element={<Navigate to="/" replace />} />

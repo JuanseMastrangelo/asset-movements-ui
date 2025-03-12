@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FileUpload } from "@/components/ui/file-upload";
 import { useToast } from "@/components/ui/use-toast";
+import { Transaction, TransactionResponse } from "@/models/transaction";
 
 interface Asset {
   id: string;
@@ -33,25 +34,29 @@ interface Asset {
 }
 
 interface OperationFormProps {
-  onComplete: (data: FormData) => void;
-  initialData?: FormData;
+  onComplete: (data: Transaction) => void;
+  initialData: Partial<Transaction>;
 }
 
 const operationSchema = z.object({
   ingressAssetId: z.string({
     required_error: "Debes seleccionar un activo de ingreso",
   }),
-  ingressAmount: z.number({
-    required_error: "Debes ingresar una cantidad",
-    invalid_type_error: "Debe ser un número",
-  }).positive("La cantidad debe ser mayor a 0"),
+  ingressAmount: z
+    .number({
+      required_error: "Debes ingresar una cantidad",
+      invalid_type_error: "Debe ser un número",
+    })
+    .positive("La cantidad debe ser mayor a 0"),
   egressAssetId: z.string({
     required_error: "Debes seleccionar un activo de egreso",
   }),
-  egressAmount: z.number({
-    required_error: "Debes ingresar una cantidad",
-    invalid_type_error: "Debe ser un número",
-  }).positive("La cantidad debe ser mayor a 0"),
+  egressAmount: z
+    .number({
+      required_error: "Debes ingresar una cantidad",
+      invalid_type_error: "Debe ser un número",
+    })
+    .positive("La cantidad debe ser mayor a 0"),
   notes: z.string().optional(),
 });
 
@@ -63,7 +68,7 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
 
   const form = useForm<FormData>({
     resolver: zodResolver(operationSchema),
-    defaultValues: initialData || {
+    defaultValues: {
       ingressAssetId: "",
       ingressAmount: 0,
       egressAssetId: "",
@@ -89,79 +94,140 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
     },
   });
 
-  const calculateDifferencePercentage = () => {
-    const { ingressAmount, egressAmount } = form.getValues();
-    if (!ingressAmount || !egressAmount) return 0;
-    return ((ingressAmount - egressAmount) / egressAmount) * 100;
+  useEffect(() => {
+    if (initialData && initialData.details) {
+      const ingressDetail = initialData.details.find(
+        (d) => d.movementType === "INCOME"
+      );
+      const egressDetail = initialData.details.find(
+        (d) => d.movementType === "EXPENSE"
+      );
+
+      if (ingressDetail && egressDetail) {
+        form.reset({
+          ingressAssetId: ingressDetail.assetId,
+          ingressAmount: ingressDetail.amount,
+          egressAssetId: egressDetail.assetId,
+          egressAmount: egressDetail.amount,
+          notes: initialData.notes,
+        });
+      }
+    }
+  }, [initialData, form]);
+
+  const formatAmount = (value: number) => {
+    if (value === 0) return "";
+    const [integerPart, decimalPart] = value.toString().split(".");
+    if (decimalPart) {
+      return `${integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".")},${decimalPart}`;
+    }
+    return integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  };
+
+  const parseAmount = (value: string) => {
+    const cleanValue = value.replace(/\./g, "").replace(",", ".");
+    const parsedValue = parseFloat(cleanValue);
+    return isNaN(parsedValue) ? 0 : parsedValue;
   };
 
   const onSubmit = async (data: FormData) => {
     try {
-      const formData = new FormData();
-      Object.entries(data).forEach(([key, value]) => {
-        formData.append(key, value.toString());
-      });
-      
-      files.forEach((file) => {
-        formData.append("files", file);
-      });
-
-      await api.post("/operations", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      toast({
-        title: "Éxito",
-        description: "Operación creada correctamente",
-      });
-
-      onComplete(data);
+      const selectedIngressAsset = assets?.data.find(
+        (a) => a.id === data.ingressAssetId
+      );
+      const selectedEgressAsset = assets?.data.find(
+        (a) => a.id === data.egressAssetId
+      );
+  
+      if (!selectedIngressAsset || !selectedEgressAsset) {
+        toast({
+          title: "Error",
+          description: "Debes seleccionar ambos activos",
+          variant: "destructive",
+        });
+        return;
+      }
+  
+      const body = {
+        clientId: initialData?.clientId,
+        notes: data.notes || "",
+        details: [
+          {
+            assetId: data.ingressAssetId,
+            movementType: "INCOME" as const,
+            amount: data.ingressAmount,
+            notes: `Ingreso de ${selectedIngressAsset.name}`,
+          },
+          {
+            assetId: data.egressAssetId,
+            movementType: "EXPENSE" as const,
+            amount: data.egressAmount,
+            notes: `Egreso de ${selectedEgressAsset.name}`,
+          },
+        ],
+      };
+  
+      let response;
+      if (initialData && initialData.id) {
+        // Actualizar la transacción existente
+        response = await api.patch<TransactionResponse>(`transactions/${initialData.id}`, body);
+        toast({
+          title: "Éxito",
+          description: "Transacción actualizada correctamente",
+        });
+      } else {
+        // Crear una nueva transacción
+        response = await api.post<TransactionResponse>("transactions", body);
+        toast({
+          title: "Éxito",
+          description: "Transacción creada correctamente",
+        });
+      }
+      onComplete(response.data.data);
+  
+  
+      // Si hay archivos, los subimos en una segunda llamada
+      if (files.length > 0) {
+        const formData = new FormData();
+        files.forEach((file) => {
+          formData.append("files", file);
+        });
+  
+        await api.post(`transactions/${response.data.id}/attachments`, formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
+      }
     } catch (error) {
       toast({
         title: "Error",
-        description: "No se pudo crear la operación",
+        description: "No se pudo crear/actualizar la transacción",
         variant: "destructive",
       });
     }
   };
-
-  const createTodoItem = async () => {
-    try {
-      await api.post("/todos", {
-        title: "Revisar operación",
-        description: form.getValues("notes"),
-        dueDate: new Date(),
-        priority: "HIGH",
-      });
-
-      toast({
-        title: "Éxito",
-        description: "Tarea creada correctamente",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudo crear la tarea",
-        variant: "destructive",
-      });
-    }
-  };
+  
 
   const downloadPdfPreview = async () => {
     try {
-      const response = await api.post("/operations/preview", form.getValues(), {
-        responseType: "blob",
-      });
+      const response = await api.post(
+        "operations/preview",
+        form.getValues(),
+        { responseType: "blob" }
+      );
 
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", "preview.pdf");
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      const reader = new FileReader();
+      reader.onload = () => {
+        const pdfWindow = window.open("", "_self");
+        if (pdfWindow) {
+          pdfWindow.document.write(
+            `<iframe width='100%' height='100%' src='${reader.result}'></iframe>`
+          );
+        }
+      };
+      reader.readAsDataURL(blob);
     } catch (error) {
       toast({
         title: "Error",
@@ -175,9 +241,6 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
     return <div>Cargando activos...</div>;
   }
 
-  const differencePercentage = calculateDifferencePercentage();
-  const isHighDifference = Math.abs(differencePercentage) > 10;
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -188,11 +251,8 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
               name="ingressAssetId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Activo de Ingreso</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
+                  <FormLabel>Activo de Ingreso *</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Seleccionar activo" />
@@ -216,13 +276,29 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
               name="ingressAmount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Cantidad de Ingreso</FormLabel>
+                  <FormLabel>Cantidad de Ingreso *</FormLabel>
                   <FormControl>
                     <Input
-                      type="number"
-                      step="0.01"
+                      type="text"
+                      inputMode="decimal"
+                      disabled={!form.watch("ingressAssetId")}
                       {...field}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                      value={formatAmount(field.value)}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^\d,]/g, "");
+                        if (value === "") {
+                          field.onChange(0);
+                          return;
+                        }
+                        if (value.split(",").length > 2) return;
+                        if (value.includes(",")) {
+                          const [int, dec] = value.split(",");
+                          if (dec && dec.length > 2) return;
+                        }
+                        const numericValue = parseAmount(value);
+                        field.onChange(numericValue);
+                      }}
+                      placeholder="0"
                     />
                   </FormControl>
                   <FormMessage />
@@ -237,11 +313,8 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
               name="egressAssetId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Activo de Egreso</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
+                  <FormLabel>Activo de Egreso *</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Seleccionar activo" />
@@ -265,13 +338,29 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
               name="egressAmount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Cantidad de Egreso</FormLabel>
+                  <FormLabel>Cantidad de Egreso *</FormLabel>
                   <FormControl>
                     <Input
-                      type="number"
-                      step="0.01"
+                      type="text"
+                      inputMode="decimal"
+                      disabled={!form.watch("egressAssetId")}
                       {...field}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                      value={formatAmount(field.value)}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^\d,]/g, "");
+                        if (value === "") {
+                          field.onChange(0);
+                          return;
+                        }
+                        if (value.split(",").length > 2) return;
+                        if (value.includes(",")) {
+                          const [int, dec] = value.split(",");
+                          if (dec && dec.length > 2) return;
+                        }
+                        const numericValue = parseAmount(value);
+                        field.onChange(numericValue);
+                      }}
+                      placeholder="0"
                     />
                   </FormControl>
                   <FormMessage />
@@ -280,19 +369,6 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
             />
           </div>
         </div>
-
-        {differencePercentage !== 0 && (
-          <div className={`text-center p-4 rounded-lg ${
-            isHighDifference ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"
-          }`}>
-            Diferencia: {differencePercentage.toFixed(2)}%
-            {isHighDifference && (
-              <p className="text-sm mt-1">
-                ¡Atención! La diferencia es mayor al 10%
-              </p>
-            )}
-          </div>
-        )}
 
         <FormField
           control={form.control}
@@ -314,7 +390,7 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
             value={files}
             onChange={setFiles}
             maxFiles={5}
-            maxSize={5 * 1024 * 1024} // 5MB
+            maxSize={5 * 1024 * 1024}
             accept={{
               "application/pdf": [".pdf"],
               "image/*": [".png", ".jpg", ".jpeg"],
@@ -324,9 +400,6 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
 
         <div className="flex justify-between">
           <div className="space-x-2">
-            <Button type="button" variant="outline" onClick={createTodoItem}>
-              Crear Tarea
-            </Button>
             <Button type="button" variant="outline" onClick={downloadPdfPreview}>
               Vista Previa PDF
             </Button>
@@ -336,4 +409,4 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
       </form>
     </Form>
   );
-} 
+}

@@ -17,10 +17,11 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
       </div>
     );
   }
-  console.log(isAuthenticated);
+
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  // If authenticated, render the protected children
   return <>{children}</>;
-} 
+}

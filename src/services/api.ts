@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { LoginCredentials, RegisterCredentials, AuthResponse, Asset, CreateAssetDto, UpdateAssetDto } from '../models';
+import { TransactionResponse } from '@/models/transaction';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -39,9 +40,11 @@ const processQueue = (error: any = null) => {
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('accessToken');
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
     return config;
   },
   (error) => {
@@ -51,67 +54,16 @@ api.interceptors.request.use(
 
 // Interceptor para manejar errores y refresh token
 api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
-
-    // Si el error es 401 y no es una petición de refresh
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
-
-      // if (isRefreshing) {
-      //   // Si ya está refrescando, encolar la petición
-      //   return new Promise((resolve, reject) => {
-      //     failedQueue.push({ resolve, reject });
-      //   })
-      //     .then((token) => {
-      //       originalRequest.headers.Authorization = `Bearer ${token}`;
-      //       return api(originalRequest);
-      //     })
-      //     .catch((err) => Promise.reject(err));
-      // }
-
-      // originalRequest._retry = true;
-      // isRefreshing = true;
-
-      // try {
-      //   const refreshToken = localStorage.getItem('refreshToken');
-      //   if (!refreshToken) {
-      //     throw new Error('No refresh token available');
-      //   }
-
-      //   // Llamar al endpoint de refresh
-      //   const { data } = await axios.post<AuthResponse>(`${BASE_URL}/auth/refresh`, {
-      //     refreshToken,
-      //   });
-
-      //   // Guardar los nuevos tokens
-      //   localStorage.setItem('accessToken', data.accessToken);
-      //   localStorage.setItem('refreshToken', data.refreshToken);
-      //   localStorage.setItem('user', JSON.stringify(data.user));
-
-      //   // Actualizar el header de la petición original
-      //   originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
-
-      //   processQueue();
-      //   return api(originalRequest);
-      // } catch (refreshError) {
-      //   processQueue(refreshError);
-      //   // Si falla el refresh, limpiar todo y redirigir al login
-      //   localStorage.removeItem('accessToken');
-      //   localStorage.removeItem('refreshToken');
-      //   localStorage.removeItem('user');
-      //   window.location.href = '/login';
-      //   return Promise.reject(refreshError);
-      // } finally {
-      //   isRefreshing = false;
-      // }
+  (response) => {
+    console.log('API Response:', response.config.url, response.status); // Para debug
+    return response;
+  },
+  (error) => {
+    console.error('API Error:', error.config?.url, error.response?.status); // Para debug
+    if (error.response?.status === 401) {
+      localStorage.removeItem('accessToken');
+      window.location.href = '/login';
     }
-
     return Promise.reject(error);
   }
 );
@@ -122,7 +74,6 @@ export const authService = {
     const { data } = await api.post<AuthResponse>('/auth/login', credentials);
     localStorage.setItem('accessToken', data.accessToken);
     localStorage.setItem('refreshToken', data.refreshToken);
-    localStorage.setItem('user', JSON.stringify(data.user));
     return data;
   },
 
@@ -130,22 +81,19 @@ export const authService = {
     const { data } = await api.post<AuthResponse>('/auth/register', credentials);
     localStorage.setItem('accessToken', data.accessToken);
     localStorage.setItem('refreshToken', data.refreshToken);
-    localStorage.setItem('user', JSON.stringify(data.user));
     return data;
   },
 
   logout: () => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
   },
 
   checkAuth: async (): Promise<AuthResponse | null> => {
     const accessToken = localStorage.getItem('accessToken');
     const refreshToken = localStorage.getItem('refreshToken');
-    const user = localStorage.getItem('user');
 
-    if (!accessToken || !refreshToken || !user) {
+    if (!accessToken || !refreshToken) {
       return null;
     }
 
@@ -157,7 +105,6 @@ export const authService = {
       
       localStorage.setItem('accessToken', data.accessToken);
       localStorage.setItem('refreshToken', data.refreshToken);
-      localStorage.setItem('user', JSON.stringify(data.user));
       
       return data;
     } catch {
@@ -333,4 +280,17 @@ export const assetService = {
     const { data } = await api.patch(`/tasks/${taskId}/complete`);
     return data;
   },
+}; 
+
+// Transactions Services
+export const transactionsService = {
+  getOne: async (transactionId: string) => {
+    try {
+      const { data } = await api.get<TransactionResponse>(`/transactions/${transactionId}`);
+      return data.data;
+    } catch (error) {
+      console.error('Error fetching assets:', error);
+      throw error;
+    }
+  }
 }; 

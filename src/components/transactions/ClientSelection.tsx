@@ -23,38 +23,18 @@ import { Mail, Eye, Edit, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useToast } from "@/components/ui/use-toast";
-
-interface CurrentAccount {
-  type: string;
-  balance: number;
-}
-
-interface Client {
-  id: string;
-  name: string;
-  status: string;
-  currentAccounts?: CurrentAccount[];
-}
-
-interface Transaction {
-  id: string;
-  type: string;
-  lastMovement: string;
-  inherits: boolean;
-  state: "COMPLETED" | "PENDING" | "CURRENT_ACCOUNT";
-  egress: number;
-  ingress: number;
-  createdBy: string;
-}
+import { useNavigate } from "react-router-dom";
+import { Client } from "@/models";
+import { Transaction } from "@/models/transaction";
 
 interface ClientSelectionProps {
   onComplete: (client: Client) => void;
-  initialData?: Client;
 }
 
-export function ClientSelection({ onComplete, initialData }: ClientSelectionProps) {
+export function ClientSelection({ onComplete }: ClientSelectionProps) {
   const { toast } = useToast();
-  const [selectedClient, setSelectedClient] = useState<Client | null>(initialData || null);
+  const navigate = useNavigate();
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
   const { data: clients, isLoading: isLoadingClients } = useQuery({
@@ -78,7 +58,7 @@ export function ClientSelection({ onComplete, initialData }: ClientSelectionProp
     queryKey: ["client-transactions", selectedClient?.id],
     queryFn: async () => {
       try {
-        const response = await api.get<{ data: Transaction[] }>(`/clients/${selectedClient?.id}/transactions`);
+        const response = await api.get<{ data: Transaction[] }>(`/transactions/search?clientId=${selectedClient?.id}`);
         return response.data;
       } catch (error) {
         toast({
@@ -89,7 +69,9 @@ export function ClientSelection({ onComplete, initialData }: ClientSelectionProp
         throw error;
       }
     },
-    enabled: !!selectedClient?.id
+    enabled: !!selectedClient?.id,
+    refetchOnWindowFocus: false,
+    refetchInterval: false
   });
 
   const handleSendReport = async (clientId: string) => {
@@ -136,9 +118,15 @@ export function ClientSelection({ onComplete, initialData }: ClientSelectionProp
             <DialogHeader>
               <DialogTitle>Crear Nuevo Cliente</DialogTitle>
             </DialogHeader>
-            {/* Formulario de creación de cliente */}
           </DialogContent>
         </Dialog>
+        {
+          selectedClient &&
+          <Button variant="outline" onClick={() => onComplete(selectedClient)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Cargar Operación
+          </Button>
+        }
       </div>
 
       <div className="border rounded-lg">
@@ -147,7 +135,6 @@ export function ClientSelection({ onComplete, initialData }: ClientSelectionProp
             <TableRow>
               <TableHead>Cliente</TableHead>
               <TableHead>Estado</TableHead>
-              <TableHead>Cuenta Corriente</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
@@ -161,18 +148,8 @@ export function ClientSelection({ onComplete, initialData }: ClientSelectionProp
                 <TableCell>{client.name}</TableCell>
                 <TableCell>
                   <Badge variant="outline">
-                    {client.status}
+                    {client.isActive ? 'Active' : 'Inactive'}
                   </Badge>
-                </TableCell>
-                <TableCell>
-                  {client.currentAccounts?.map((account) => (
-                    <div key={account.type} className="flex items-center gap-2">
-                      <span>{account.type}:</span>
-                      <span className={account.balance < 0 ? "text-red-500" : "text-green-600"}>
-                        {account.balance.toLocaleString()}
-                      </span>
-                    </div>
-                  ))}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
@@ -218,14 +195,13 @@ export function ClientSelection({ onComplete, initialData }: ClientSelectionProp
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>#</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Último movimiento</TableHead>
-                  <TableHead>Hereda</TableHead>
+                  <TableHead>Fecha</TableHead>
+                  <TableHead>Notas</TableHead>
                   <TableHead>Estado</TableHead>
-                  <TableHead>Egresa</TableHead>
-                  <TableHead>Ingresa</TableHead>
-                  <TableHead>Realizada por</TableHead>
+                  <TableHead>Ingreso</TableHead>
+                  <TableHead>Egreso</TableHead>
+                  <TableHead>Creado por</TableHead>
+                  <TableHead>Transacción Padre</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -240,48 +216,57 @@ export function ClientSelection({ onComplete, initialData }: ClientSelectionProp
                   <>
                     {clientTransactions?.data.map((transaction: Transaction) => (
                       <TableRow key={transaction.id}>
-                        <TableCell>{transaction.id.slice(0, 8)}</TableCell>
-                        <TableCell>{transaction.type}</TableCell>
                         <TableCell>
-                          {format(new Date(transaction.lastMovement), "dd/MM/yyyy HH:mm", { locale: es })}
+                          {format(new Date(transaction.date), "dd/MM/yyyy HH:mm", { locale: es })}
                         </TableCell>
-                        <TableCell>
-                          {transaction.inherits ? "Sí" : "No"}
-                        </TableCell>
+                        <TableCell>{transaction.notes}</TableCell>
                         <TableCell>
                           <Badge
                             variant={
                               transaction.state === "COMPLETED"
                                 ? "default"
-                                : transaction.state === "PENDING"
-                                ? "outline"
-                                : "secondary"
+                                : "outline"
                             }
                           >
                             {transaction.state === "COMPLETED"
                               ? "Completada"
-                              : transaction.state === "PENDING"
-                              ? "Pendiente"
-                              : "Cuenta Corriente"}
+                              : "Pendiente"}
                           </Badge>
                         </TableCell>
-                        <TableCell>{transaction.egress.toLocaleString()}</TableCell>
-                        <TableCell>{transaction.ingress.toLocaleString()}</TableCell>
+                        <TableCell>
+                          {transaction.details
+                            .filter(detail => detail.movementType === "INCOME")
+                            .reduce((sum, detail) => sum + detail.amount, 0)
+                            .toLocaleString()}
+                        </TableCell>
+                        <TableCell>
+                          {transaction.details
+                            .filter(detail => detail.movementType === "EXPENSE")
+                            .reduce((sum, detail) => sum + detail.amount, 0)
+                            .toLocaleString()}
+                        </TableCell>
                         <TableCell>{transaction.createdBy}</TableCell>
+                        <TableCell>
+                          {transaction.parentTransaction ? (
+                            <Badge variant="secondary">
+                              {transaction.parentTransaction.id.slice(0, 8)}
+                            </Badge>
+                          ) : "-"}
+                        </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => window.open(`/transactions/${transaction.id}`, '_blank')}
+                              onClick={() => navigate(`/transactions/${transaction.id}`)}
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
-                            {transaction.state === "CURRENT_ACCOUNT" && (
+                            {transaction.state === "PENDING" && (
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => window.open(`/transactions/${transaction.id}/edit`, '_blank')}
+                                onClick={() => navigate(`/transactions/${transaction.id}`)}
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
@@ -301,15 +286,6 @@ export function ClientSelection({ onComplete, initialData }: ClientSelectionProp
                 )}
               </TableBody>
             </Table>
-          </div>
-
-          <div className="flex justify-end mt-6">
-            <Button
-              onClick={() => selectedClient && onComplete(selectedClient)}
-              disabled={!selectedClient}
-            >
-              Cargar Operación
-            </Button>
           </div>
         </>
       )}

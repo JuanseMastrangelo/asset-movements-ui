@@ -85,7 +85,9 @@ export default function Home() {
 
   const { data: transactionHistoryData } = useQuery({
     queryKey: ["transactionHistory"],
-    queryFn: () => api.get<{ data: Transaction[] }>("/dashboard/transaction-history")
+    queryFn: () => api.get<{ data: Transaction[] }>("/dashboard/transaction-history"),
+    refetchOnWindowFocus: false,
+    refetchInterval: false
   })
 
   const handleRefresh = () => {

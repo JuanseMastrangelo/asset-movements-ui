@@ -1,203 +1,269 @@
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { api } from "@/services/api";
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { FileUpload } from "@/components/ui/file-upload";
-import { useToast } from "@/components/ui/use-toast";
 
-interface ValuesFormProps {
-  onComplete: (data: FormData) => void;
-  initialData?: FormData;
+interface BillRow {
+  count: string;
+  billValue: string;
 }
 
-const valuesSchema = z.object({
-  currencyAmount: z.number({
-    required_error: "Debes ingresar un monto",
-    invalid_type_error: "Debe ser un número",
-  }).positive("El monto debe ser mayor a 0"),
-  exchangeRate: z.number({
-    required_error: "Debes ingresar una tasa de cambio",
-    invalid_type_error: "Debe ser un número",
-  }).positive("La tasa debe ser mayor a 0"),
-  totalAmount: z.number({
-    required_error: "Debes ingresar un monto total",
-    invalid_type_error: "Debe ser un número",
-  }).positive("El monto debe ser mayor a 0"),
-  notes: z.string().optional(),
-});
+interface ValuesFormProps {
+  transactionId: string;
+  allowedIngressTotal: number;
+  allowedEgressTotal: number;
+  operationType: "Physic" | "Virtual";
+  ingressAssetName: string;
+  egressAssetName: string;
+}
 
-type FormData = z.infer<typeof valuesSchema>;
+const ValuesForm: React.FC<ValuesFormProps> = ({
+  transactionId,
+  allowedIngressTotal,
+  allowedEgressTotal,
+  operationType,
+  ingressAssetName,
+  egressAssetName,
+}) => {
+  const navigate = useNavigate();
+  const [ingressRows, setIngressRows] = useState<BillRow[]>([{ count: "", billValue: "" }]);
+  const [egressRows, setEgressRows] = useState<BillRow[]>([{ count: "", billValue: "" }]);
+  const [error, setError] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-export function ValuesForm({ onComplete, initialData }: ValuesFormProps) {
-  const { toast } = useToast();
-  const [files, setFiles] = useState<File[]>([]);
+  // Calculate total amount for a set of rows
+  const calculateTotal = (rows: BillRow[]): number =>
+    rows.reduce((total, row) => {
+      const count = parseFloat(row.count);
+      const value = parseFloat(row.billValue);
+      return !isNaN(count) && !isNaN(value) ? total + count * value : total;
+    }, 0);
 
-  const form = useForm<FormData>({
-    resolver: zodResolver(valuesSchema),
-    defaultValues: initialData || {
-      currencyAmount: 0,
-      exchangeRate: 0,
-      totalAmount: 0,
-      notes: "",
-    },
-  });
-
-  const calculateTotal = (currencyAmount: number, exchangeRate: number) => {
-    return currencyAmount * exchangeRate;
+  // Check if last row is complete (both inputs filled)
+  const canAddRow = (rows: BillRow[]): boolean => {
+    const lastRow = rows[rows.length - 1];
+    return lastRow.count !== "" && lastRow.billValue !== "";
   };
 
-  const onSubmit = async (data: FormData) => {
-    try {
-      const formData = new FormData();
-      Object.entries(data).forEach(([key, value]) => {
-        formData.append(key, value.toString());
-      });
-      
-      files.forEach((file) => {
-        formData.append("files", file);
-      });
-
-      await api.post("/values", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      toast({
-        title: "Éxito",
-        description: "Valores guardados correctamente",
-      });
-
-      onComplete(data);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudieron guardar los valores",
-        variant: "destructive",
-      });
+  // Add new row if last row is complete
+  const addIngressRow = () => {
+    if (canAddRow(ingressRows)) {
+      setIngressRows([...ingressRows, { count: "", billValue: "" }]);
     }
   };
 
+  const addEgressRow = () => {
+    if (canAddRow(egressRows)) {
+      setEgressRows([...egressRows, { count: "", billValue: "" }]);
+    }
+  };
+
+  const handleIngressChange = (index: number, field: "count" | "billValue", value: string) => {
+    const updatedRows = [...ingressRows];
+    updatedRows[index] = { ...updatedRows[index], [field]: value };
+    setIngressRows(updatedRows);
+  };
+
+  const handleEgressChange = (index: number, field: "count" | "billValue", value: string) => {
+    const updatedRows = [...egressRows];
+    updatedRows[index] = { ...updatedRows[index], [field]: value };
+    setEgressRows(updatedRows);
+  };
+
+  const allRowsComplete = (rows: BillRow[]): boolean =>
+    rows.every((row) => row.count !== "" && row.billValue !== "");
+
+  // Handle submission (PATCH transaction state to CURRENT_ACCOUNT)
+  const handleSubmit = async (redirectToLogistics: boolean) => {
+    if (!allRowsComplete(ingressRows) || !allRowsComplete(egressRows)) {
+      setError("Por favor, complete todos los campos.");
+      return;
+    }
+
+    const ingressTotal = calculateTotal(ingressRows);
+    const egressTotal = calculateTotal(egressRows);
+
+    if (ingressTotal > allowedIngressTotal) {
+      setError(`El total de ingresos (${ingressTotal}) supera lo permitido (${allowedIngressTotal}).`);
+      return;
+    }
+    if (egressTotal > allowedEgressTotal) {
+      setError(`El total de egresos (${egressTotal}) supera lo permitido (${allowedEgressTotal}).`);
+      return;
+    }
+
+    setError("");
+    setIsSubmitting(true);
+    try {
+      await api.patch(`transactions/${transactionId}`, { state: "CURRENT_ACCOUNT" });
+      if (redirectToLogistics) {
+        navigate("/transactions/step4");
+      } else {
+        navigate("/transactions");
+      }
+    } catch (err) {
+      setError("Error al cerrar la operación.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Disable functionality if operation type is Virtual
+  const isDisabled = operationType !== "Physic";
+
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid grid-cols-3 gap-4">
-          <FormField
-            control={form.control}
-            name="currencyAmount"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Monto en Divisa</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    {...field}
-                    onChange={(e) => {
-                      const value = parseFloat(e.target.value);
-                      field.onChange(value);
-                      const exchangeRate = form.getValues("exchangeRate");
-                      if (exchangeRate) {
-                        form.setValue("totalAmount", calculateTotal(value, exchangeRate));
-                      }
-                    }}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="exchangeRate"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Tasa de Cambio</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    {...field}
-                    onChange={(e) => {
-                      const value = parseFloat(e.target.value);
-                      field.onChange(value);
-                      const currencyAmount = form.getValues("currencyAmount");
-                      if (currencyAmount) {
-                        form.setValue("totalAmount", calculateTotal(currencyAmount, value));
-                      }
-                    }}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="totalAmount"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Monto Total</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    {...field}
-                    disabled
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+    <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+      {isDisabled && (
+        <div className="text-red-500">
+          Esta funcionalidad está deshabilitada para operaciones virtuales.
         </div>
-
-        <FormField
-          control={form.control}
-          name="notes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Notas</FormLabel>
-              <FormControl>
-                <Textarea {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
+      )}
+      <div className="flex border rounded">
+        {/* Ingreso Section */}
+        <div className="flex-1 p-4 border-r">
+          <div className="mb-2 font-semibold">Ingreso</div>
+          {/* Header for columns */}
+          <div className="flex text-sm font-medium">
+            <div className="w-1/2">Cantidad</div>
+            <div className="w-1/2">Monto</div>
+          </div>
+          {ingressRows.map((row, index) => (
+            <div key={`ingress-${index}`} className="flex items-center my-2">
+              <div className="w-1/2">
+                <Input
+                  type="number"
+                  placeholder="Cantidad"
+                  value={row.count}
+                  onChange={(e) => handleIngressChange(index, "count", e.target.value)}
+                  disabled={isDisabled}
+                />
+              </div>
+              <div className="px-2">x</div>
+              <div className="w-1/2">
+                <Input
+                  type="number"
+                  placeholder="Monto"
+                  value={row.billValue}
+                  onChange={(e) => handleIngressChange(index, "billValue", e.target.value)}
+                  disabled={isDisabled}
+                />
+              </div>
+              <div className="ml-2 text-sm">
+                {row.count && row.billValue && (
+                  <>
+                    {row.count} x {row.billValue} ={" "}
+                    {parseFloat(row.count) * parseFloat(row.billValue)} {ingressAssetName}
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={addIngressRow}
+            disabled={!canAddRow(ingressRows) || isDisabled}
+            className="mt-2"
+          >
+            Agregar fila
+          </Button>
+          <div className="mt-2 text-sm">
+            Total Ingreso: {calculateTotal(ingressRows)} / Permitido: {allowedIngressTotal}
+          </div>
+          {calculateTotal(ingressRows) > allowedIngressTotal && (
+            <div className="text-red-500 text-sm">El total de ingresos supera lo permitido.</div>
           )}
-        />
-
-        <div>
-          <FormLabel>Documentos Requeridos</FormLabel>
-          <FileUpload
-            value={files}
-            onChange={setFiles}
-            maxFiles={5}
-            maxSize={5 * 1024 * 1024} // 5MB
-            accept={{
-              "application/pdf": [".pdf"],
-              "image/*": [".png", ".jpg", ".jpeg"],
-            }}
-          />
         </div>
 
-        <div className="flex justify-end">
-          <Button type="submit">Guardar Valores</Button>
+        {/* Egreso Section */}
+        <div className="flex-1 p-4">
+          <div className="mb-2 font-semibold">Egreso</div>
+          {/* Header for columns */}
+          <div className="flex text-sm font-medium">
+            <div className="w-1/2">Cantidad</div>
+            <div className="w-1/2">Monto</div>
+          </div>
+          {egressRows.map((row, index) => (
+            <div key={`egress-${index}`} className="flex items-center my-2">
+              <div className="w-1/2">
+                <Input
+                  type="number"
+                  placeholder="Cantidad"
+                  value={row.count}
+                  onChange={(e) => handleEgressChange(index, "count", e.target.value)}
+                  disabled={isDisabled}
+                />
+              </div>
+              <div className="px-2">x</div>
+              <div className="w-1/2">
+                <Input
+                  type="number"
+                  placeholder="Monto"
+                  value={row.billValue}
+                  onChange={(e) => handleEgressChange(index, "billValue", e.target.value)}
+                  disabled={isDisabled}
+                />
+              </div>
+              <div className="ml-2 text-sm">
+                {row.count && row.billValue && (
+                  <>
+                    {row.count} x {row.billValue} ={" "}
+                    {parseFloat(row.count) * parseFloat(row.billValue)} {egressAssetName}
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={addEgressRow}
+            disabled={!canAddRow(egressRows) || isDisabled}
+            className="mt-2"
+          >
+            Agregar fila
+          </Button>
+          <div className="mt-2 text-sm">
+            Total Egreso: {calculateTotal(egressRows)} / Permitido: {allowedEgressTotal}
+          </div>
+          {calculateTotal(egressRows) > allowedEgressTotal && (
+            <div className="text-red-500 text-sm">El total de egresos supera lo permitido.</div>
+          )}
         </div>
-      </form>
-    </Form>
+      </div>
+
+      {error && <div className="text-red-500">{error}</div>}
+
+      <div className="flex justify-end space-x-4">
+        <Button
+          type="button"
+          variant="outline"
+          disabled={
+            isSubmitting ||
+            !allRowsComplete(ingressRows) ||
+            !allRowsComplete(egressRows) ||
+            isDisabled
+          }
+          onClick={() => handleSubmit(false)}
+        >
+          Cerrar operación
+        </Button>
+        <Button
+          type="button"
+          disabled={
+            isSubmitting ||
+            !allRowsComplete(ingressRows) ||
+            !allRowsComplete(egressRows) ||
+            isDisabled
+          }
+          onClick={() => handleSubmit(true)}
+        >
+          Cerrar operación con logística
+        </Button>
+      </div>
+    </form>
   );
-} 
+};
+
+export default ValuesForm;
