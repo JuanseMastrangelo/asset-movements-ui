@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { RefreshCw, Eye, CheckCircle, FileText } from 'lucide-react';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Table,
   TableBody,
@@ -228,10 +227,10 @@ export default function Home() {
                   Cliente
                 </TableHead>
                 <TableHead className="text-right w-[200px]">
-                  Asset 1
+                  Egresa
                 </TableHead>
                 <TableHead className="text-right w-[200px]">
-                  Asset 2
+                  Ingresa
                 </TableHead>
                 <TableHead className="sticky right-0 z-20 w-[300px] text-right">
                   Acciones

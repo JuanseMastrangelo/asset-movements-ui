@@ -23,7 +23,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FileUpload } from "@/components/ui/file-upload";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import { Transaction, TransactionResponse } from "@/models/transaction";
 
 interface Asset {
@@ -63,8 +63,8 @@ const operationSchema = z.object({
 type FormData = z.infer<typeof operationSchema>;
 
 export function OperationForm({ onComplete, initialData }: OperationFormProps) {
-  const { toast } = useToast();
   const [files, setFiles] = useState<File[]>([]);
+  const [percentageChange, setPercentageChange] = useState<string>("");
 
   const form = useForm<FormData>({
     resolver: zodResolver(operationSchema),
@@ -84,11 +84,7 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
         const response = await api.get<{ data: Asset[] }>("/assets");
         return response.data;
       } catch (error) {
-        toast({
-          title: "Error",
-          description: "No se pudieron cargar los activos",
-          variant: "destructive",
-        });
+        toast.error("No se pudieron cargar los activos");
         throw error;
       }
     },
@@ -115,6 +111,22 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
     }
   }, [initialData, form]);
 
+  useEffect(() => {
+    if (form.watch("ingressAmount") && form.watch("egressAmount")) {
+      const percentage = (form.watch("egressAmount") / form.watch("ingressAmount") * 100);
+      // Si el número es entero, no mostrar decimales
+      setPercentageChange(Number.isInteger(percentage) ? percentage.toString() : percentage.toFixed(2));
+    }
+  }, [form.watch("ingressAmount"), form.watch("egressAmount")]);
+
+  const updateEgressFromPercentage = (percentage: string) => {
+    const ingressAmount = form.watch("ingressAmount");
+    if (ingressAmount && !isNaN(parseFloat(percentage))) {
+      const newEgressAmount = (ingressAmount * parseFloat(percentage) / 100);
+      form.setValue("egressAmount", newEgressAmount);
+    }
+  };
+
   const formatAmount = (value: number) => {
     if (value === 0) return "";
     const [integerPart, decimalPart] = value.toString().split(".");
@@ -140,11 +152,7 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
       );
   
       if (!selectedIngressAsset || !selectedEgressAsset) {
-        toast({
-          title: "Error",
-          description: "Debes seleccionar ambos activos",
-          variant: "destructive",
-        });
+        toast.error("Debes seleccionar ambos activos");
         return;
       }
   
@@ -171,17 +179,11 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
       if (initialData && initialData.id) {
         // Actualizar la transacción existente
         response = await api.patch<TransactionResponse>(`transactions/${initialData.id}`, body);
-        toast({
-          title: "Éxito",
-          description: "Transacción actualizada correctamente",
-        });
+        toast.success("Transacción actualizada correctamente");
       } else {
         // Crear una nueva transacción
         response = await api.post<TransactionResponse>("transactions", body);
-        toast({
-          title: "Éxito",
-          description: "Transacción creada correctamente",
-        });
+        toast.success("Transacción creada correctamente");
       }
       onComplete(response.data.data);
   
@@ -193,18 +195,14 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
           formData.append("files", file);
         });
   
-        await api.post(`transactions/${response.data.id}/attachments`, formData, {
+        await api.post(`transactions/${response.data.data.id}/attachments`, formData, {
           headers: {
             "Content-Type": "multipart/form-data",
           },
         });
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudo crear/actualizar la transacción",
-        variant: "destructive",
-      });
+      toast.error("No se pudo crear/actualizar la transacción");
     }
   };
   
@@ -229,11 +227,7 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
       };
       reader.readAsDataURL(blob);
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudo generar la vista previa",
-        variant: "destructive",
-      });
+      toast.error("No se pudo generar la vista previa");
     }
   };
 
@@ -292,7 +286,7 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
                         }
                         if (value.split(",").length > 2) return;
                         if (value.includes(",")) {
-                          const [int, dec] = value.split(",");
+                          const [_, dec] = value.split(",");
                           if (dec && dec.length > 2) return;
                         }
                         const numericValue = parseAmount(value);
@@ -354,7 +348,7 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
                         }
                         if (value.split(",").length > 2) return;
                         if (value.includes(",")) {
-                          const [int, dec] = value.split(",");
+                          const [_, dec] = value.split(",");
                           if (dec && dec.length > 2) return;
                         }
                         const numericValue = parseAmount(value);
@@ -368,6 +362,25 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
               )}
             />
           </div>
+          {
+          form.watch("ingressAssetId") &&
+          <div className="flex justify-center mt-2 col-span-2">
+            <div className="flex items-center justify-center space-x-2 w-full">
+              <Input
+                type="number"
+                value={percentageChange}
+                onChange={(e) => {
+                  setPercentageChange(e.target.value);
+                  updateEgressFromPercentage(e.target.value);
+                }}
+                className="w-20 text-center"
+                min="0"
+                step="1"
+              />
+              <span>%</span>
+            </div>
+          </div>
+          }
         </div>
 
         <FormField

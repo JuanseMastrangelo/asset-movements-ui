@@ -2,7 +2,7 @@ export interface Asset {
   id: string;
   name: string;
   description: string;
-  type: string;
+  type: 'PHYSICAL' | 'DIGITAL';
   isPercentage: boolean;
   isMtherAccount: boolean;
   isActive: boolean;
@@ -11,7 +11,7 @@ export interface Asset {
 export interface CreateAssetDto {
   name: string;
   description: string;
-  type: string;
+  type: 'PHYSICAL' | 'DIGITAL';
   isPercentage: boolean;
   isMtherAccount: boolean;
 }
@@ -19,7 +19,7 @@ export interface CreateAssetDto {
 export interface UpdateAssetDto {
   name?: string;
   description?: string;
-  type?: string;
+  type?: 'PHYSICAL' | 'DIGITAL';
   isPercentage?: boolean;
   isMtherAccount?: boolean;
 } 

@@ -6,12 +6,16 @@ import Register from './pages/Register';
 import Home from './pages/Home';
 import Assets from './pages/Assets';
 import { Transactions } from './pages/Transactions';
+import { Clients } from './pages/Clients';
+import { Users } from './pages/Users';
 
 const AppRoutes = () => {
   const protectedRoutes = [
     { path: "/", element: <Home /> },
     { path: "/assets", element: <Assets /> },
     { path: "/transactions/:id?", element: <Transactions /> },
+    { path: "/clients", element: <Clients /> },
+    { path: "/settings/users", element: <Users /> },
   ];
 
   

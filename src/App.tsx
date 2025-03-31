@@ -5,6 +5,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import AppRoutes from './routes';
 import { ToastContainer } from './components/toast-container';
 import { ToastProvider } from '@radix-ui/react-toast';
+import { Toaster } from 'sonner';
 
 const queryClient = new QueryClient();
 
@@ -21,6 +22,7 @@ function App() {
           </ThemeProvider>
         </AuthProvider>
       </ToastProvider>
+      <Toaster richColors position="top-center" />
     </QueryClientProvider>
   );
 }

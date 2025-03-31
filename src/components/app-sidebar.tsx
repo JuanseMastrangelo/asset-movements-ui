@@ -6,13 +6,7 @@ import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
 import { NavMain } from "./nav-main"
@@ -27,16 +21,16 @@ const data = {
       url: "#",
       items: [
         {
-          title: "Transacciones",
-          url: "/transactions",
-        },
-        {
           title: "Inicio",
           url: "/",
         },
         {
+          title: "Transacciones",
+          url: "/transactions",
+        },
+        {
           title: "Clientes",
-          url: "/clientes",
+          url: "/clients",
         }
       ],
     },
@@ -45,8 +39,12 @@ const data = {
       url: "#",
       items: [
         {
-          title: "Assets",
+          title: "Activos",
           url: "/assets",
+        },
+        {
+          title: "Usuarios",
+          url: "/settings/users",
         }
       ],
     }

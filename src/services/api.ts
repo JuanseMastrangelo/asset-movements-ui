@@ -1,6 +1,8 @@
 import axios from 'axios';
-import { LoginCredentials, RegisterCredentials, AuthResponse, Asset, CreateAssetDto, UpdateAssetDto } from '../models';
+import { LoginCredentials, RegisterCredentials, AuthResponse, Asset, CreateAssetDto, UpdateAssetDto, CreateClientDto } from '../models';
 import { TransactionResponse } from '@/models/transaction';
+import { toast } from 'sonner';
+import { CreateUserDto, User } from '@/models/user';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -9,6 +11,11 @@ export type Client = {
   name: string;
   email: string;
   phone: string;
+  address: string;
+  country: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export const api = axios.create({
@@ -18,23 +25,6 @@ export const api = axios.create({
   },
 });
 
-// Flag para evitar múltiples llamadas al refresh token
-let isRefreshing = false;
-let failedQueue: Array<{
-  resolve: (token: string) => void;
-  reject: (error: any) => void;
-}> = [];
-
-const processQueue = (error: any = null) => {
-  failedQueue.forEach((prom) => {
-    if (error) {
-      prom.reject(error);
-    } else {
-      prom.resolve(localStorage.getItem('accessToken') || '');
-    }
-  });
-  failedQueue = [];
-};
 
 // Interceptor para agregar el token a las peticiones
 api.interceptors.request.use(
@@ -55,15 +45,41 @@ api.interceptors.request.use(
 // Interceptor para manejar errores y refresh token
 api.interceptors.response.use(
   (response) => {
-    console.log('API Response:', response.config.url, response.status); // Para debug
+    console.log('API Response:', response.config.url, response.status);
     return response;
   },
   (error) => {
-    console.error('API Error:', error.config?.url, error.response?.status); // Para debug
+    console.error('API Error:', error.config?.url, error.response?.status);
+    
+    // Obtener el mensaje de error
+    const errorResponse = error.response?.data;
+    let errorMessage = 'Ha ocurrido un error inesperado';
+
+    if (errorResponse) {
+      if (errorResponse.errors && errorResponse.errors.length > 0) {
+        // Si hay errores específicos, mostrar el primero
+        errorMessage = errorResponse.errors[0];
+      } else if (errorResponse.message) {
+        // Si no hay errores específicos pero hay un mensaje general
+        errorMessage = errorResponse.message;
+      }
+    }
+
+    // Manejar diferentes tipos de error
     if (error.response?.status === 401) {
+      toast.error('Sesión expirada. Por favor, inicie sesión nuevamente.');
       localStorage.removeItem('accessToken');
       window.location.href = '/login';
+    } else if (error.response?.status === 403) {
+      toast.error('No tiene permisos para realizar esta acción');
+    } else if (error.response?.status === 404) {
+      toast.error('El recurso solicitado no existe');
+    } else if (error.response?.status === 422 || error.response?.status === 400) {
+      toast.error(errorMessage);
+    } else {
+      toast.error(errorMessage);
     }
+
     return Promise.reject(error);
   }
 );
@@ -126,6 +142,16 @@ export const clientService = {
 
   getById: async (id: string) => {
     const { data } = await api.get<Client>(`/clients/${id}`);
+    return data;
+  },
+
+  create: async (client: CreateClientDto) => {
+    const { data } = await api.post<Client>('/clients', client);
+    return data;
+  },
+
+  update: async (id: string, client: Partial<Client>) => {
+    const { data } = await api.put<Client>(`/clients/${id}`, client);
     return data;
   },
 };
@@ -292,5 +318,42 @@ export const transactionsService = {
       console.error('Error fetching assets:', error);
       throw error;
     }
+  }
+}; 
+
+// Users Services
+export const usersService = {
+  getAll: async (page = 1) => {
+    const { data } = await api.get<{ 
+      data: User[]; 
+      meta: { 
+        pagination: { 
+          totalPages: number 
+        } 
+      } 
+    }>('/users', {
+      params: { page },
+    });
+    return data;
+  },
+
+  create: async (user: CreateUserDto) => {
+    const { data } = await api.post<User>('/users', user);
+    return data;
+  },
+
+  update: async (id: string, user: Partial<User>) => {
+    const { data } = await api.put<User>(`/users/${id}`, user);
+    return data;
+  },
+
+  enable: async (id: string) => {
+    const { data } = await api.patch<User>(`/users/${id}/enable`);
+    return data;
+  },
+
+  disable: async (id: string) => {
+    const { data } = await api.patch<User>(`/users/${id}/disable`);
+    return data;
   }
 }; 

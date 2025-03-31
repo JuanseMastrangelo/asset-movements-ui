@@ -151,7 +151,7 @@ export function LogisticsForm({ onComplete, initialData }: LogisticsFormProps) {
                     selected={field.value}
                     onSelect={field.onChange}
                     disabled={(date) =>
-                      date < new Date() || date > new Date().setMonth(new Date().getMonth() + 3)
+                      date < new Date() || date > new Date(new Date().setMonth(new Date().getMonth() + 3))
                     }
                     initialFocus
                   />

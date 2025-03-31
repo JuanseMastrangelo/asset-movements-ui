@@ -22,6 +22,13 @@ import {
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Switch } from '../components/ui/switch';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
 
 export default function Assets() {
   const [page, setPage] = useState(1);
@@ -29,7 +36,7 @@ export default function Assets() {
   const [newAsset, setNewAsset] = useState<CreateAssetDto>({
     name: '',
     description: '',
-    type: '',
+    type: 'PHYSICAL',
     isPercentage: false,
     isMtherAccount: false,
   });
@@ -50,7 +57,7 @@ export default function Assets() {
       setNewAsset({
         name: '',
         description: '',
-        type: '',
+        type: 'PHYSICAL',
         isPercentage: false,
         isMtherAccount: false,
       });
@@ -115,14 +122,20 @@ export default function Assets() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="type">Tipo</Label>
-                <Input
-                  id="type"
+                <Select
                   value={newAsset.type}
-                  onChange={(e) =>
-                    setNewAsset({ ...newAsset, type: e.target.value })
+                  onValueChange={(value: 'PHYSICAL' | 'DIGITAL') =>
+                    setNewAsset({ ...newAsset, type: value })
                   }
-                  required
-                />
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PHYSICAL">Físico</SelectItem>
+                    <SelectItem value="DIGITAL">Digital</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex items-center space-x-2">
                 <Switch

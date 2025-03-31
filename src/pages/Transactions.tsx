@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { ClientSelection } from "@/components/transactions/ClientSelection";
 import { OperationForm } from "@/components/transactions/OperationForm";
-import { LogisticsForm } from "@/components/transactions/LogisticsForm";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { transactionsService } from "@/services/api";
@@ -10,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Transaction } from "@/models/transaction";
 import { Client } from "@/models";
 import ValuesForm from "@/components/transactions/ValuesForm";
+import { api } from "@/services/api";
 
 const steps = [
   { id: "client", title: "Selección de Cliente" },
@@ -59,18 +59,21 @@ export function Transactions() {
   };
 
   // Handler when the operation step is completed
-  const handleOperationComplete = (operationData: any) => {
+  const handleOperationComplete = () => {
     // After completing operation, proceed to the values step
     setCurrentStep("values");
   };
 
-  // Handler when logistics step is completed (si es necesario)
-  const handleLogisticsComplete = (logisticsData: any) => {
-    // Lógica para finalizar logística si fuera necesaria
-  };
-
   // Render component based on current step
   const renderStep = () => {
+    const { data: assets } = useQuery({
+      queryKey: ["assets"],
+      queryFn: async () => {
+        const response = await api.get<{ data: Array<{ id: string; name: string; type: string }> }>("/assets");
+        return response.data;
+      }
+    });
+
     switch (currentStep) {
       case "client":
         return <ClientSelection onComplete={handleClientSelection} />;
@@ -92,11 +95,17 @@ export function Transactions() {
         const allowedIngressTotal = incomeDetail ? incomeDetail.amount : 0;
         const allowedEgressTotal = expenseDetail ? expenseDetail.amount : 0;
 
+        const ingressAsset = assets?.data.find(asset => asset.id === incomeDetail?.assetId);
+        const egressAsset = assets?.data.find(asset => asset.id === expenseDetail?.assetId);
+
         return (
           <ValuesForm
             transactionId={transactionData!.id!}
             allowedIngressTotal={allowedIngressTotal}
             allowedEgressTotal={allowedEgressTotal}
+            operationType={ingressAsset?.type === "PHYSICAL" ? "Physic" : "Virtual"}
+            ingressAssetName={ingressAsset?.name || ""}
+            egressAssetName={egressAsset?.name || ""}
           />
         );
       }
