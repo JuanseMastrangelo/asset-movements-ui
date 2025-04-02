@@ -174,7 +174,6 @@ export default function Assets() {
               <TableHead>Tipo</TableHead>
               <TableHead>Porcentaje</TableHead>
               <TableHead>Cuenta Madre</TableHead>
-              <TableHead>Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -182,14 +181,9 @@ export default function Assets() {
               <TableRow key={asset.id}>
                 <TableCell>{asset.name}</TableCell>
                 <TableCell>{asset.description}</TableCell>
-                <TableCell>{asset.type}</TableCell>
+                <TableCell>{asset.type === 'PHYSICAL' ? 'Físico' : 'Digital'}</TableCell>
                 <TableCell>{asset.isPercentage ? 'Sí' : 'No'}</TableCell>
                 <TableCell>{asset.isMtherAccount ? 'Sí' : 'No'}</TableCell>
-                <TableCell>
-                  <Button variant="outline" size="sm">
-                    Editar
-                  </Button>
-                </TableCell>
               </TableRow>
             ))}
           </TableBody>

@@ -8,6 +8,8 @@ import Assets from './pages/Assets';
 import { Transactions } from './pages/Transactions';
 import { Clients } from './pages/Clients';
 import { Users } from './pages/Users';
+import { TransactionRules } from './pages/TransactionRules';
+import { Logistics } from './pages/Logistics';
 
 const AppRoutes = () => {
   const protectedRoutes = [
@@ -16,6 +18,8 @@ const AppRoutes = () => {
     { path: "/transactions/:id?", element: <Transactions /> },
     { path: "/clients", element: <Clients /> },
     { path: "/settings/users", element: <Users /> },
+    { path: "/transaction-rules", element: <TransactionRules /> },
+    { path: "/logistics", element: <Logistics /> },
   ];
 
   

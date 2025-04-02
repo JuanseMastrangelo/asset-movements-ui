@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     console.log('AuthProvider mounted, loading user...');
     loadUser();
-  }, [loadUser]);
+  }, []);
 
   // Render a loading spinner until the initial load is complete
   if (isLoading) {
@@ -68,10 +68,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       const response = await authService.login(credentials);
-      // Save tokens in localStorage
-      localStorage.setItem('accessToken', response.accessToken);
-      localStorage.setItem('refreshToken', response.refreshToken);
-      // Set user data and update authentication status
       setUser(response.user);
       setIsAuthenticated(true);
     } catch (error) {

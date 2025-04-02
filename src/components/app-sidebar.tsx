@@ -45,6 +45,14 @@ const data = {
         {
           title: "Usuarios",
           url: "/settings/users",
+        },
+        {
+          title: "Reglas de Transacciones",
+          url: "/transaction-rules",
+        },
+        {
+          title: "Logística",
+          url: "/logistics",
         }
       ],
     }

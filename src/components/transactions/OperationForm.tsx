@@ -33,6 +33,11 @@ interface Asset {
   amount: number;
 }
 
+interface TransactionRule {
+  sourceAssetId: string;
+  targetAssetId: string;
+}
+
 interface OperationFormProps {
   onComplete: (data: Transaction) => void;
   initialData: Partial<Transaction>;
@@ -65,6 +70,7 @@ type FormData = z.infer<typeof operationSchema>;
 export function OperationForm({ onComplete, initialData }: OperationFormProps) {
   const [files, setFiles] = useState<File[]>([]);
   const [percentageChange, setPercentageChange] = useState<string>("");
+  const [filteredEgressAssets, setFilteredEgressAssets] = useState<Asset[]>([]);
 
   const form = useForm<FormData>({
     resolver: zodResolver(operationSchema),
@@ -85,6 +91,19 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
         return response.data;
       } catch (error) {
         toast.error("No se pudieron cargar los activos");
+        throw error;
+      }
+    },
+  });
+
+  const { data: rulesData } = useQuery({
+    queryKey: ["transaction-rules"],
+    queryFn: async () => {
+      try {
+        const response = await api.get<{ data: TransactionRule[] }>("/transaction-rules");
+        return response.data;
+      } catch (error) {
+        toast.error("No se pudieron cargar las reglas de transacción");
         throw error;
       }
     },
@@ -118,6 +137,18 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
       setPercentageChange(Number.isInteger(percentage) ? percentage.toString() : percentage.toFixed(2));
     }
   }, [form.watch("ingressAmount"), form.watch("egressAmount")]);
+
+  useEffect(() => {
+    const selectedIngressAssetId = form.watch("ingressAssetId");
+    if (selectedIngressAssetId && rulesData) {
+      const validEgressAssets = rulesData.data
+        .filter(rule => rule.sourceAssetId === selectedIngressAssetId)
+        .map(rule => rule.targetAssetId);
+      setFilteredEgressAssets(assets?.data.filter(asset => validEgressAssets.includes(asset.id)) || []);
+    } else {
+      setFilteredEgressAssets([]);
+    }
+  }, [form.watch("ingressAssetId"), rulesData, assets]);
 
   const updateEgressFromPercentage = (percentage: string) => {
     const ingressAmount = form.watch("ingressAmount");
@@ -315,7 +346,7 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {assets?.data.map((asset) => (
+                      {filteredEgressAssets.map((asset) => (
                         <SelectItem key={asset.id} value={asset.id}>
                           {asset.name} ({asset.type})
                         </SelectItem>

@@ -142,7 +142,7 @@ export default function Home() {
                               variant="secondary"
                               className="ml-1"
                             >
-                              {asset.type}
+                              {asset.type === 'PHYSICAL' ? 'Físico' : 'Digital'}
                             </Badge>
                           </div>
                         </TableCell>

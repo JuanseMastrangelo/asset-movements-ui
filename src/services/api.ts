@@ -1,8 +1,11 @@
 import axios from 'axios';
 import { LoginCredentials, RegisterCredentials, AuthResponse, Asset, CreateAssetDto, UpdateAssetDto, CreateClientDto } from '../models';
 import { TransactionResponse } from '@/models/transaction';
+import { TransactionRuleResponse } from '@/models/transactionRule';
 import { toast } from 'sonner';
 import { CreateUserDto, User } from '@/models/user';
+import { CreateLogisticConfigDto, LogisticConfig, LogisticConfigResponse } from '@/models/logistic';
+import { CalculateLogisticDto } from '@/models/logistic';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -65,8 +68,9 @@ api.interceptors.response.use(
       }
     }
 
+    const token = localStorage.getItem('accessToken'); // TODO: Para cuando el usuario no está autenticado y escribe mal las credenciales.
     // Manejar diferentes tipos de error
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && token) {
       toast.error('Sesión expirada. Por favor, inicie sesión nuevamente.');
       localStorage.removeItem('accessToken');
       window.location.href = '/login';
@@ -160,12 +164,7 @@ export const clientService = {
 export const assetService = {
   getAll: async (page = 1) => {
     try {
-      const { data } = await api.get<{ data: Asset[]; total: number }>('/assets', {
-        params: { page },
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-        },
-      });
+      const { data } = await api.get<{ data: Asset[]; total: number }>('/assets?page=' + page);
       return data;
     } catch (error) {
       console.error('Error fetching assets:', error);
@@ -175,11 +174,7 @@ export const assetService = {
 
   getById: async (id: string) => {
     try {
-      const { data } = await api.get<Asset>(`/assets/${id}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-        },
-      });
+      const { data } = await api.get<Asset>(`/assets/${id}`);
       return data;
     } catch (error) {
       console.error('Error fetching asset:', error);
@@ -356,4 +351,55 @@ export const usersService = {
     const { data } = await api.patch<User>(`/users/${id}/disable`);
     return data;
   }
+}; 
+
+// Transaction Rules Services
+export const transactionRulesService = {
+  getAll: async (page = 1) => {
+    const { data } = await api.get<TransactionRuleResponse>('/transaction-rules', {
+      params: { page },
+    });
+    return data;
+  },
+
+  enable: async (id: string) => {
+    const { data } = await api.patch(`/transaction-rules/${id}/enable`);
+    return data;
+  },
+
+  disable: async (id: string) => {
+    const { data } = await api.patch(`/transaction-rules/${id}/disable`);
+    return data;
+  },
+
+  delete: async (id: string) => {
+    await api.delete(`/transaction-rules/${id}`);
+  },
+
+  create: async (rule: { sourceAssetId: string; targetAssetId: string; isEnabled: boolean }) => {
+    const { data } = await api.post('/transaction-rules', rule);
+    return data;
+  },
+}; 
+
+// Logistics Services
+export const logisticsService = {
+  getAll: async (page = 1) => {
+    const { data } = await api.get<LogisticConfigResponse>('/logistics/settings', {
+      params: { page },
+    });
+    return data;
+  },
+  create: async (config: CreateLogisticConfigDto) => {
+    const { data } = await api.post<LogisticConfig>('/logistics/settings', config);
+    return data;
+  },
+  calculateLogistic: async (dto: CalculateLogisticDto) => {
+    const { data } = await api.post('/logistics/calculate', dto);
+    return data;
+  },
+  updateLogisticConfig: async (id: string, updateData: Partial<CreateLogisticConfigDto>) => {
+    const { data } = await api.patch(`/logistics/settings/${id}`, updateData);
+    return data;
+  },
 }; 
