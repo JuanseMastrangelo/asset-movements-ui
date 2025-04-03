@@ -22,6 +22,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 import { clientService } from '@/services/api';
+import { toast } from 'sonner';
 
 export function Clients() {
   const [page, setPage] = useState(1);
@@ -35,6 +36,8 @@ export function Clients() {
   });
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -60,11 +63,28 @@ export function Clients() {
   });
 
   const editMutation = useMutation({
-    mutationFn: (data: Client) => clientService.update(data.id, data),
+    mutationFn: (data: Client) => clientService.update(data.id, {
+      name: data.name,
+      email: data.email,
+      phone: data.phone,
+      address: data.address,
+      country: data.country,
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       setIsEditDialogOpen(false);
       setEditingClient(null);
+      toast.success('Cliente actualizado correctamente');
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (clientId: string) => clientService.delete(clientId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      setIsDeleteDialogOpen(false);
+      setClientToDelete(null);
+      toast.success('Cliente eliminado correctamente');
     },
   });
 
@@ -82,6 +102,17 @@ export function Clients() {
     e.preventDefault();
     if (editingClient) {
       editMutation.mutate(editingClient);
+    }
+  };
+
+  const handleDelete = (client: Client) => {
+    setClientToDelete(client);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (clientToDelete) {
+      deleteMutation.mutate(clientToDelete.id);
     }
   };
 
@@ -212,6 +243,14 @@ export function Clients() {
                   >
                     Editar
                   </Button>
+                  <Button 
+                    variant="destructive" 
+                    size="sm"
+                    className="ml-2"
+                    onClick={() => handleDelete(client)}
+                  >
+                    Eliminar
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}
@@ -321,6 +360,27 @@ export function Clients() {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Eliminación</DialogTitle>
+          </DialogHeader>
+          <p>¿Está seguro de que desea eliminar al cliente {clientToDelete?.name}?</p>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button 
+              type="button" 
+              variant="outline"
+              onClick={() => setIsDeleteDialogOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button type="button" onClick={confirmDelete}>
+              Confirmar
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

@@ -117,8 +117,8 @@ export function Logistics() {
         <h1 className="text-2xl font-bold">Configuraciones de Logística</h1>
         <div className="flex space-x-2">
           <Button onClick={() => setIsDialogOpen(true)}>Crear Configuración</Button>
-          <Button onClick={() => setIsGeoDialogOpen(true)}>
-            <span role="img" aria-label="geolocalización">📍</span>
+          <Button variant="secondary" onClick={() => setIsGeoDialogOpen(true)}>
+            <span role="img" aria-label="geolocalización">📍 Calcular Precio</span>
           </Button>
         </div>
       </div>
@@ -216,7 +216,7 @@ export function Logistics() {
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Editar Configuración de Logística</DialogTitle>
+            <DialogTitle>Configuración de Logística</DialogTitle>
           </DialogHeader>
           {editConfig && (
             <form onSubmit={handleEditFormSubmit(handleEditSubmit)} className="space-y-4">
@@ -275,7 +275,7 @@ export function Logistics() {
                 <TableCell>{config.maxDistance}</TableCell>
                 <TableCell>{config.isActive ? 'Activo' : 'Inactivo'}</TableCell>
                 <TableCell>
-                  <Button onClick={() => handleEdit(config)}>Editar</Button>
+                  <Button variant="outline" onClick={() => handleEdit(config)}>Editar</Button>
                 </TableCell>
               </TableRow>
             ))}

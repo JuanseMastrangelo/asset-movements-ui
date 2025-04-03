@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { LoginCredentials, RegisterCredentials, AuthResponse, Asset, CreateAssetDto, UpdateAssetDto, CreateClientDto } from '../models';
+import { LoginCredentials, RegisterCredentials, AuthResponse, Asset, CreateAssetDto, UpdateAssetDto, CreateClientDto, Client } from '../models';
 import { TransactionResponse } from '@/models/transaction';
 import { TransactionRuleResponse } from '@/models/transactionRule';
 import { toast } from 'sonner';
@@ -9,17 +9,6 @@ import { CalculateLogisticDto } from '@/models/logistic';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-export type Client = {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
-  country: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-};
 
 export const api = axios.create({
   baseURL: BASE_URL,
@@ -155,7 +144,18 @@ export const clientService = {
   },
 
   update: async (id: string, client: Partial<Client>) => {
-    const { data } = await api.put<Client>(`/clients/${id}`, client);
+    const { data } = await api.patch<Client>(`/clients/${id}`, client);
+    return data;
+  },
+
+  delete: async (id: string) => {
+    await api.delete(`/clients/${id}`);
+  },
+
+  searchClients: async (name: string) => {
+    const { data } = await api.get<{ data: Client[] }>('/clients/search', {
+      params: { name },
+    });
     return data;
   },
 };
@@ -188,7 +188,7 @@ export const assetService = {
   },
 
   update: async (id: string, asset: UpdateAssetDto) => {
-    const { data } = await api.put<Asset>(`/assets/${id}`, asset);
+    const { data } = await api.patch<Asset>(`/assets/${id}`, asset);
     return data;
   },
 
@@ -338,7 +338,7 @@ export const usersService = {
   },
 
   update: async (id: string, user: Partial<User>) => {
-    const { data } = await api.put<User>(`/users/${id}`, user);
+    const { data } = await api.patch<User>(`/users/${id}`, user);
     return data;
   },
 

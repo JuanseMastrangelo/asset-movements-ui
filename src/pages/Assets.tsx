@@ -29,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../components/ui/select';
+import { Badge } from '../components/ui/badge';
 
 export default function Assets() {
   const [page, setPage] = useState(1);
@@ -64,9 +65,21 @@ export default function Assets() {
     },
   });
 
+  const toggleActiveMutation = useMutation({
+    mutationFn: ({ id, active }: { id: string; active: boolean }) =>
+      active ? assetService.enable(id) : assetService.disable(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assets'] });
+    },
+  });
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     createMutation.mutate(newAsset);
+  };
+
+  const handleToggleActive = (asset: Asset) => {
+    toggleActiveMutation.mutate({ id: asset.id, active: !asset.isActive });
   };
 
   if (isLoading) {
@@ -174,6 +187,8 @@ export default function Assets() {
               <TableHead>Tipo</TableHead>
               <TableHead>Porcentaje</TableHead>
               <TableHead>Cuenta Madre</TableHead>
+              <TableHead>Estado</TableHead>
+              <TableHead>Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -184,6 +199,20 @@ export default function Assets() {
                 <TableCell>{asset.type === 'PHYSICAL' ? 'Físico' : 'Digital'}</TableCell>
                 <TableCell>{asset.isPercentage ? 'Sí' : 'No'}</TableCell>
                 <TableCell>{asset.isMtherAccount ? 'Sí' : 'No'}</TableCell>
+                <TableCell>
+                  <Badge variant={asset.isActive ? "default" : "destructive"}>
+                    {asset.isActive ? 'Activo' : 'Inactivo'}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleToggleActive(asset)}
+                  >
+                    {asset.isActive ? 'Desactivar' : 'Activar'}
+                  </Button>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

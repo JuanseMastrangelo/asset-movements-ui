@@ -30,7 +30,10 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "date-fns": "^4.1.0",
+    "install": "^0.13.0",
+    "lodash.debounce": "^4.0.8",
     "lucide-react": "^0.323.0",
+    "npm": "^11.2.0",
     "react": "^18.2.0",
     "react-day-picker": "^9.6.1",
     "react-dom": "^18.2.0",
@@ -44,6 +47,7 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
+    "@types/lodash.debounce": "^4.0.9",
     "@types/node": "^20.11.19",
     "@types/react": "^18.2.55",
     "@types/react-dom": "^18.2.19",

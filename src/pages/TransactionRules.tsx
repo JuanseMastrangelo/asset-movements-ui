@@ -13,7 +13,6 @@ import {
 import { Badge } from '../components/ui/badge';
 import { transactionRulesService, assetService } from '@/services/api';
 import { TransactionRule } from '@/models/transactionRule';
-import { TrashIcon } from '@heroicons/react/24/solid';
 import {
   Dialog,
   DialogContent,
@@ -187,12 +186,11 @@ export function TransactionRules() {
                       {rule.isEnabled ? 'Desactivar' : 'Activar'}
                     </Button>
                     <Button
-                      variant="outline"
+                      variant="destructive"
                       size="sm"
-                      className="bg-red-500 text-white"
                       onClick={() => handleDelete(rule.id)}
                     >
-                      <TrashIcon className="h-5 w-5" />
+                      Eliminar
                     </Button>
                   </div>
                 </TableCell>
