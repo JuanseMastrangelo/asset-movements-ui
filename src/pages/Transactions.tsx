@@ -10,6 +10,7 @@ import { Transaction } from "@/models/transaction";
 import { Client } from "@/models";
 import ValuesForm from "@/components/transactions/ValuesForm";
 import { api } from "@/services/api";
+import { LogisticsForm } from "@/components/transactions/LogisticsForm";
 
 const steps = [
   { id: "client", title: "Selección de Cliente" },
@@ -110,12 +111,11 @@ export function Transactions() {
         );
       }
       case "logistics":
-        // return (
-        //   <LogisticsForm
-        //     onComplete={handleLogisticsComplete}
-        //     transactionId={transactionData!.id!}
-        //   />
-        // );
+        return (
+          <LogisticsForm
+            transactionId={transactionData!.id!}
+          />
+        );
       default:
         return null;
     }

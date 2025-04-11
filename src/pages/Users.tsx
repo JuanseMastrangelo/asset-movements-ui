@@ -52,6 +52,9 @@ export function Users() {
     staleTime: Infinity,
   });
 
+  // Asegúrate de que `data` incluya `meta` con `totalPages` o similar
+  const totalPages = data?.meta?.pagination?.totalPages || 1;
+
   const createMutation = useMutation({
     mutationFn: usersService.create,
     onSuccess: () => {
@@ -181,7 +184,7 @@ export function Users() {
               <TableHead>Email</TableHead>
               <TableHead>Rol</TableHead>
               <TableHead>Estado</TableHead>
-              <TableHead>Acciones</TableHead>
+              <TableHead className='text-right'>Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -199,12 +202,12 @@ export function Users() {
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={user.isActive ? "default" : "destructive"}>
+                  <Badge variant={user.isActive ? "success" : "destructive"}>
                     {user.isActive ? 'Activo' : 'Inactivo'}
                   </Badge>
                 </TableCell>
-                <TableCell>
-                  <div className="flex gap-2">
+                <TableCell className='text-right'>
+                  <div className="flex gap-2 justify-end">
                     <Button
                       variant="outline"
                       size="sm"
@@ -220,25 +223,27 @@ export function Users() {
         </Table>
       </div>
 
-      <div className="flex justify-center gap-2">
-        <Button
-          variant="outline"
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
-          disabled={page === 1}
-        >
-          Anterior
-        </Button>
-        <span className="flex items-center mx-2">
-          Página {page} de {data?.meta.pagination.totalPages || 1}
-        </span>
-        <Button
-          variant="outline"
-          onClick={() => setPage((p) => p + 1)}
-          disabled={page >= (data?.meta.pagination.totalPages || 1)}
-        >
-          Siguiente
-        </Button>
-      </div>
+      {!isLoading && totalPages > 1 && (
+        <div className="flex justify-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+          >
+            Anterior
+          </Button>
+          <span className="flex items-center mx-2">
+            Página {page} de {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            onClick={() => setPage((p) => p + 1)}
+            disabled={page >= totalPages}
+          >
+            Siguiente
+          </Button>
+        </div>
+      )}
     </div>
   );
 } 

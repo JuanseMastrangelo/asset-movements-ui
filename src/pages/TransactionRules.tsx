@@ -23,6 +23,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Label } from '../components/ui/label';
 import { Asset } from '@/models';
+import { Trash2 } from 'lucide-react';
 
 export function TransactionRules() {
   const [page, setPage] = useState(1);
@@ -40,6 +41,9 @@ export function TransactionRules() {
     queryFn: () => transactionRulesService.getAll(page),
     retry: 1,
   });
+
+  // Asegúrate de que `data` incluya `meta` con `totalPages` o similar
+  const totalPages = 1;
 
   const toggleActiveMutation = useMutation({
     mutationFn: ({ id, active }: { id: string; active: boolean }) =>
@@ -172,7 +176,7 @@ export function TransactionRules() {
                 <TableCell>{rule.sourceAsset.name}</TableCell>
                 <TableCell>{rule.targetAsset.name}</TableCell>
                 <TableCell>
-                  <Badge variant={rule.isEnabled ? "default" : "destructive"}>
+                  <Badge variant={rule.isEnabled ? "success" : "destructive"}>
                     {rule.isEnabled ? 'Activo' : 'Inactivo'}
                   </Badge>
                 </TableCell>
@@ -190,7 +194,7 @@ export function TransactionRules() {
                       size="sm"
                       onClick={() => handleDelete(rule.id)}
                     >
-                      Eliminar
+                      <Trash2 className='w-4 h-4' />
                     </Button>
                   </div>
                 </TableCell>
@@ -200,22 +204,24 @@ export function TransactionRules() {
         </Table>
       </div>
 
-      <div className="flex justify-center gap-2">
-        <Button
-          variant="outline"
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
-          disabled={page === 1}
-        >
-          Anterior
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => setPage((p) => p + 1)}
-          disabled={!data?.data.length}
-        >
-          Siguiente
-        </Button>
-      </div>
+      {!isLoading && totalPages > 1 && (
+        <div className="flex justify-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+          >
+            Anterior
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setPage((p) => p + 1)}
+            disabled={page >= totalPages}
+          >
+            Siguiente
+          </Button>
+        </div>
+      )}
     </div>
   );
 } 

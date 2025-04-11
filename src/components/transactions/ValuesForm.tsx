@@ -22,7 +22,6 @@ const ValuesForm: React.FC<ValuesFormProps> = ({
   transactionId,
   allowedIngressTotal,
   allowedEgressTotal,
-  operationType,
   ingressAssetName,
   egressAssetName,
 }) => {
@@ -109,16 +108,9 @@ const ValuesForm: React.FC<ValuesFormProps> = ({
     }
   };
 
-  // Disable functionality if operation type is Virtual
-  const isDisabled = operationType !== "Physic";
 
   return (
     <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
-      {isDisabled && (
-        <div className="text-red-500">
-          Esta funcionalidad está deshabilitada para operaciones virtuales.
-        </div>
-      )}
       <div className="flex border rounded">
         {/* Ingreso Section */}
         <div className="flex-1 p-4 border-r">
@@ -136,7 +128,6 @@ const ValuesForm: React.FC<ValuesFormProps> = ({
                   placeholder="Cantidad"
                   value={row.count}
                   onChange={(e) => handleIngressChange(index, "count", e.target.value)}
-                  disabled={isDisabled}
                 />
               </div>
               <div className="px-2">x</div>
@@ -146,7 +137,6 @@ const ValuesForm: React.FC<ValuesFormProps> = ({
                   placeholder="Monto"
                   value={row.billValue}
                   onChange={(e) => handleIngressChange(index, "billValue", e.target.value)}
-                  disabled={isDisabled}
                 />
               </div>
               <div className="ml-2 text-sm">
@@ -163,7 +153,7 @@ const ValuesForm: React.FC<ValuesFormProps> = ({
             type="button"
             variant="outline"
             onClick={addIngressRow}
-            disabled={!canAddRow(ingressRows) || isDisabled}
+            disabled={!canAddRow(ingressRows)}
             className="mt-2"
           >
             Agregar fila
@@ -192,7 +182,6 @@ const ValuesForm: React.FC<ValuesFormProps> = ({
                   placeholder="Cantidad"
                   value={row.count}
                   onChange={(e) => handleEgressChange(index, "count", e.target.value)}
-                  disabled={isDisabled}
                 />
               </div>
               <div className="px-2">x</div>
@@ -202,7 +191,6 @@ const ValuesForm: React.FC<ValuesFormProps> = ({
                   placeholder="Monto"
                   value={row.billValue}
                   onChange={(e) => handleEgressChange(index, "billValue", e.target.value)}
-                  disabled={isDisabled}
                 />
               </div>
               <div className="ml-2 text-sm">
@@ -219,7 +207,7 @@ const ValuesForm: React.FC<ValuesFormProps> = ({
             type="button"
             variant="outline"
             onClick={addEgressRow}
-            disabled={!canAddRow(egressRows) || isDisabled}
+            disabled={!canAddRow(egressRows)}
             className="mt-2"
           >
             Agregar fila
@@ -242,8 +230,7 @@ const ValuesForm: React.FC<ValuesFormProps> = ({
           disabled={
             isSubmitting ||
             !allRowsComplete(ingressRows) ||
-            !allRowsComplete(egressRows) ||
-            isDisabled
+            !allRowsComplete(egressRows)
           }
           onClick={() => handleSubmit(false)}
         >
@@ -254,8 +241,7 @@ const ValuesForm: React.FC<ValuesFormProps> = ({
           disabled={
             isSubmitting ||
             !allRowsComplete(ingressRows) ||
-            !allRowsComplete(egressRows) ||
-            isDisabled
+            !allRowsComplete(egressRows)
           }
           onClick={() => handleSubmit(true)}
         >

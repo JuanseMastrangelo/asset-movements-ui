@@ -3,7 +3,7 @@ import { assetService } from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { RefreshCw, Eye, CheckCircle, FileText } from 'lucide-react';
+import { RefreshCw, Eye, CheckCircle } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -21,7 +21,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { api } from "@/services/api"
 
 const formatAmount = (amount: number) => {
   const prefix = amount > 0 ? '+' : amount < 0 ? '-' : '';
@@ -29,30 +28,6 @@ const formatAmount = (amount: number) => {
 };
 
 type TransactionState = "PENDING" | "COMPLETED" | "CURRENT_ACCOUNT"
-
-type Transaction = {
-  id: string
-  date: string
-  state: TransactionState
-  notes: string
-  clientId: string
-  clientName: string
-  parentTransactionId: string | null
-  parentClientName: string | null
-}
-
-type BadgeVariant = "default" | "destructive" | "outline" | "secondary"
-
-const getStateVariant = (state: TransactionState): BadgeVariant => {
-  switch (state) {
-    case "COMPLETED":
-      return "secondary"
-    case "PENDING":
-      return "outline"
-    default:
-      return "default"
-  }
-}
 
 export default function Home() {
   const navigate = useNavigate();
@@ -81,13 +56,6 @@ export default function Home() {
     refetchOnWindowFocus: false,
     refetchInterval: false
   });
-
-  const { data: transactionHistoryData } = useQuery({
-    queryKey: ["transactionHistory"],
-    queryFn: () => api.get<{ data: Transaction[] }>("/dashboard/transaction-history"),
-    refetchOnWindowFocus: false,
-    refetchInterval: false
-  })
 
   const handleRefresh = () => {
     refetchStock();
@@ -310,65 +278,6 @@ export default function Home() {
               )}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Historial de Transacciones</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="relative w-full overflow-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Transacción Padre</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {transactionHistoryData?.data.data.map((transaction: Transaction) => (
-                  <TableRow key={transaction.id}>
-                    <TableCell>{transaction.clientName}</TableCell>
-                    <TableCell>
-                      <Badge variant={getStateVariant(transaction.state)}>
-                        {transaction.state === "COMPLETED"
-                          ? "Completada"
-                          : transaction.state === "PENDING"
-                          ? "Pendiente"
-                          : "Cuenta Corriente"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {transaction.parentClientName || "-"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setSelectedNote(transaction.notes)}
-                        >
-                          <FileText className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          asChild
-                        >
-                          <a href={`/operaciones/${transaction.id}`}>
-                            <Eye className="h-4 w-4" />
-                          </a>
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
         </CardContent>
       </Card>
 

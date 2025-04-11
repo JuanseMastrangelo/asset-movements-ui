@@ -19,6 +19,8 @@ import { CreateLogisticConfigDto, LogisticConfig, LogisticConfigResponse, Calcul
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '../components/ui/select';
 import { Label } from '../components/ui/label';
 import { Switch } from '../components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { Trash2 } from 'lucide-react';
 
 interface CalculateLogisticForm {
   originAddress: string;
@@ -37,6 +39,8 @@ export function Logistics() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editConfig, setEditConfig] = useState<LogisticConfig | null>(null);
   const { register: registerEdit, handleSubmit: handleEditFormSubmit, reset: resetEditForm, setValue } = useForm<Partial<CreateLogisticConfigDto>>();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [configToDelete, setConfigToDelete] = useState<string | null>(null);
 
   const { data, isLoading, error, refetch } = useQuery<LogisticConfigResponse>({
     queryKey: ['logistics', page],
@@ -47,9 +51,20 @@ export function Logistics() {
     retry: 1,
   });
 
-  const onSubmit = async (formData: CreateLogisticConfigDto) => {
+  const totalPages = data?.meta?.totalPages || 1;
+
+  const onCreate = async (formData: CreateLogisticConfigDto) => {
+    console.log(formData);
     try {
-      await logisticsService.create(formData);
+      const createData = {
+        name: formData.name,
+        basePrice: Number(formData.basePrice),
+        pricePerKm: Number(formData.pricePerKm),
+        minDistance: Number(formData.minDistance),
+        maxDistance: Number(formData.maxDistance),
+        isActive: true
+      };
+      await logisticsService.create(createData);
       toast.success('Configuración creada exitosamente');
       refetch();
       setIsDialogOpen(false);
@@ -81,7 +96,7 @@ export function Logistics() {
         const updateData = {
           basePrice: Number(formData.basePrice),
           pricePerKm: Number(formData.pricePerKm),
-          isActive: formData.isActive ?? false,
+          isActive: formData.isActive,
         };
 
         await logisticsService.updateLogisticConfig(editConfig.id, updateData);
@@ -92,6 +107,16 @@ export function Logistics() {
       } catch (error) {
         console.log(error);
       }
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await logisticsService.deleteLogisticConfig(id);
+      toast.success('Configuración eliminada exitosamente');
+      refetch();
+    } catch (error) {
+      console.log(error);
     }
   };
 
@@ -128,7 +153,7 @@ export function Logistics() {
           <DialogHeader>
             <DialogTitle>Crear Configuración de Logística</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit(onCreate)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Nombre</Label>
               <Input id="name" {...register('name', { required: true })} />
@@ -152,7 +177,7 @@ export function Logistics() {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <Switch id="isActive" {...register('isActive')} />
+              <Switch id="isActive" checked />
               <Label htmlFor="isActive">Activo</Label>
             </div>
             <Button type="submit" className="w-full">Crear</Button>
@@ -242,13 +267,33 @@ export function Logistics() {
                 <Switch
                   id="isActive"
                   defaultChecked={editConfig.isActive}
-                  onCheckedChange={(checked) => setValue('isActive', checked)}
+                  onCheckedChange={(checked: boolean) => setValue('isActive', checked)}
                 />
                 <Label htmlFor="isActive">Activo</Label>
               </div>
               <Button type="submit" className="w-full">Guardar Cambios</Button>
             </form>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Eliminación</DialogTitle>
+          </DialogHeader>
+          <p>¿Está seguro de que desea eliminar esta configuración?</p>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Cancelar</Button>
+            <Button variant="destructive" onClick={() => {
+              if (configToDelete) {
+                handleDelete(configToDelete);
+                setDeleteDialogOpen(false);
+              }
+            }}>
+              Eliminar
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -262,7 +307,7 @@ export function Logistics() {
               <TableHead>Distancia Mínima</TableHead>
               <TableHead>Distancia Máxima</TableHead>
               <TableHead>Estado</TableHead>
-              <TableHead>Acciones</TableHead>
+              <TableHead className='text-right'>Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -273,9 +318,21 @@ export function Logistics() {
                 <TableCell>{config.pricePerKm}</TableCell>
                 <TableCell>{config.minDistance}</TableCell>
                 <TableCell>{config.maxDistance}</TableCell>
-                <TableCell>{config.isActive ? 'Activo' : 'Inactivo'}</TableCell>
                 <TableCell>
-                  <Button variant="outline" onClick={() => handleEdit(config)}>Editar</Button>
+                  <Badge variant={config.isActive ? "success" : "destructive"}>
+                    {config.isActive ? 'Activo' : 'Inactivo'}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <div className="flex gap-2 justify-end">
+                    <Button variant="outline" onClick={() => handleEdit(config)}>Editar</Button>
+                    <Button variant="destructive" onClick={() => {
+                      setConfigToDelete(config.id);
+                      setDeleteDialogOpen(true);
+                    }}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -283,22 +340,24 @@ export function Logistics() {
         </Table>
       </div>
 
-      <div className="flex justify-center gap-2">
-        <Button
-          variant="outline"
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
-          disabled={page === 1}
-        >
-          Anterior
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => setPage((p) => p + 1)}
-          disabled={!data?.data.length}
-        >
-          Siguiente
-        </Button>
-      </div>
+      {!isLoading && totalPages > 1 && (
+        <div className="flex justify-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+          >
+            Anterior
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setPage((p) => p + 1)}
+            disabled={page >= totalPages}
+          >
+            Siguiente
+          </Button>
+        </div>
+      )}
     </div>
   );
 } 

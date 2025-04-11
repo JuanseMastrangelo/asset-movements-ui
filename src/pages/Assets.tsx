@@ -50,6 +50,8 @@ export default function Assets() {
     retry: 1,
   });
 
+  const totalPages = data?.meta?.totalPages || 1;
+
   const createMutation = useMutation({
     mutationFn: assetService.create,
     onSuccess: () => {
@@ -188,7 +190,7 @@ export default function Assets() {
               <TableHead>Porcentaje</TableHead>
               <TableHead>Cuenta Madre</TableHead>
               <TableHead>Estado</TableHead>
-              <TableHead>Acciones</TableHead>
+              <TableHead className='text-right'>Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -200,11 +202,11 @@ export default function Assets() {
                 <TableCell>{asset.isPercentage ? 'Sí' : 'No'}</TableCell>
                 <TableCell>{asset.isMtherAccount ? 'Sí' : 'No'}</TableCell>
                 <TableCell>
-                  <Badge variant={asset.isActive ? "default" : "destructive"}>
+                  <Badge variant={asset.isActive ? "success" : "destructive"}>
                     {asset.isActive ? 'Activo' : 'Inactivo'}
                   </Badge>
                 </TableCell>
-                <TableCell>
+                <TableCell className='text-right'>
                   <Button
                     variant="outline"
                     size="sm"
@@ -219,22 +221,24 @@ export default function Assets() {
         </Table>
       </div>
 
-      <div className="flex justify-center gap-2">
-        <Button
-          variant="outline"
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
-          disabled={page === 1}
-        >
-          Anterior
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => setPage((p) => p + 1)}
-          disabled={!data?.data.length}
-        >
-          Siguiente
-        </Button>
-      </div>
+      {!isLoading && totalPages > 1 && (
+        <div className="flex justify-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+          >
+            Anterior
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setPage((p) => p + 1)}
+            disabled={page >= totalPages}
+          >
+            Siguiente
+          </Button>
+        </div>
+      )}
     </div>
   );
 } 

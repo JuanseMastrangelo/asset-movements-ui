@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { LoginCredentials, RegisterCredentials, AuthResponse, Asset, CreateAssetDto, UpdateAssetDto, CreateClientDto, Client } from '../models';
+import { LoginCredentials, RegisterCredentials, AuthResponse, Asset, CreateAssetDto, UpdateAssetDto, CreateClientDto, Client, ClientBalanceResponse } from '../models';
 import { TransactionResponse } from '@/models/transaction';
 import { TransactionRuleResponse } from '@/models/transactionRule';
 import { toast } from 'sonner';
@@ -156,6 +156,11 @@ export const clientService = {
     const { data } = await api.get<{ data: Client[] }>('/clients/search', {
       params: { name },
     });
+    return data;
+  },
+
+  getClientBalance: async (clientId: string) => {
+    const { data } = await api.get<ClientBalanceResponse>(`/dashboard/client-balance/${clientId}`);
     return data;
   },
 };
@@ -401,5 +406,8 @@ export const logisticsService = {
   updateLogisticConfig: async (id: string, updateData: Partial<CreateLogisticConfigDto>) => {
     const { data } = await api.patch(`/logistics/settings/${id}`, updateData);
     return data;
+  },
+  deleteLogisticConfig: async (id: string) => {
+    await api.delete(`/logistics/settings/${id}`);
   },
 }; 

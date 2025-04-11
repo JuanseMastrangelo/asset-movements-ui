@@ -24,6 +24,7 @@ interface Meta {
   message: string;
   timestamp: string;
   path: string;
+  totalPages?: number;
 }
 
 export interface LogisticConfigResponse {
