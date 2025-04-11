@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { CreateUserDto, User } from '@/models/user';
 import { CreateLogisticConfigDto, LogisticConfig, LogisticConfigResponse } from '@/models/logistic';
 import { CalculateLogisticDto } from '@/models/logistic';
+import { Denomination } from '@/models/denomination';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -162,6 +163,28 @@ export const clientService = {
   getClientBalance: async (clientId: string) => {
     const { data } = await api.get<ClientBalanceResponse>(`/dashboard/client-balance/${clientId}`);
     return data;
+  },
+};
+
+// Denominations Services
+export const denominationsService = {
+  getAll: async (): Promise<Denomination[]> => {
+    const { data } = await api.get<{ data: Denomination[] }>('/denominations');
+    return data.data;
+  },
+
+  create: async (denomination: { assetId: string; value: number; isActive: boolean }) => {
+    const { data } = await api.post('/denominations', denomination);
+    return data;
+  },
+
+  update: async (id: string, denomination: Partial<{ assetId: string; value: number; isActive: boolean }>) => {
+    const { data } = await api.patch(`/denominations/${id}`, denomination);
+    return data;
+  },
+
+  delete: async (id: string) => {
+    await api.delete(`/denominations/${id}`);
   },
 };
 

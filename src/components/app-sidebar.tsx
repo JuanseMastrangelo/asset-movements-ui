@@ -53,6 +53,10 @@ const data = {
         {
           title: "Logística",
           url: "/logistics",
+        },
+        {
+          title: "Denominaciones",
+          url: "/denominations",
         }
       ],
     }

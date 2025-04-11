@@ -10,6 +10,7 @@ import { Clients } from './pages/Clients';
 import { Users } from './pages/Users';
 import { TransactionRules } from './pages/TransactionRules';
 import { Logistics } from './pages/Logistics';
+import { Denominations } from './pages/Denominations';
 
 const AppRoutes = () => {
   const protectedRoutes = [
@@ -20,6 +21,7 @@ const AppRoutes = () => {
     { path: "/settings/users", element: <Users /> },
     { path: "/transaction-rules", element: <TransactionRules /> },
     { path: "/logistics", element: <Logistics /> },
+    { path: "/denominations", element: <Denominations /> },
   ];
 
   
