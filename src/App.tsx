@@ -7,7 +7,15 @@ import { ToastContainer } from './components/toast-container';
 import { ToastProvider } from '@radix-ui/react-toast';
 import { Toaster } from 'sonner';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      refetchInterval: false,
+      retry: 1
+    },
+  },
+});
 
 function App() {
   return (

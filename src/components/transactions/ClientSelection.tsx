@@ -19,13 +19,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Mail, Eye, Edit, Plus } from "lucide-react";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
+import { Mail, Eye, Plus } from "lucide-react";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
 import { Client } from "@/models";
-import { Transaction } from "@/models/transaction";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -37,6 +33,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { TransactionHistoryDialog } from "./TransactionHistoryDialog";
 
 interface ClientSelectionProps {
   onComplete: (client: Client) => void;
@@ -53,10 +50,10 @@ const clientSchema = z.object({
 type ClientFormData = z.infer<typeof clientSchema>;
 
 export function ClientSelection({ onComplete }: ClientSelectionProps) {
-  const navigate = useNavigate();
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [open, setOpen] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const { data: clients, isLoading: isLoadingClients, refetch: refetchClients } = useQuery({
     queryKey: ["clients"],
@@ -69,22 +66,6 @@ export function ClientSelection({ onComplete }: ClientSelectionProps) {
         throw error;
       }
     }
-  });
-
-  const { data: clientTransactions, isLoading: isLoadingTransactions } = useQuery({
-    queryKey: ["client-transactions", selectedClient?.id],
-    queryFn: async () => {
-      try {
-        const response = await api.get<{ data: Transaction[] }>(`/transactions/search?clientId=${selectedClient?.id}`);
-        return response.data;
-      } catch (error) {
-        toast.error("No se pudieron cargar las transacciones");
-        throw error;
-      }
-    },
-    enabled: !!selectedClient?.id,
-    refetchOnWindowFocus: false,
-    refetchInterval: false
   });
 
   const form = useForm<ClientFormData>({
@@ -119,6 +100,10 @@ export function ClientSelection({ onComplete }: ClientSelectionProps) {
     } catch (error) {
       toast.error("No se pudo crear el cliente");
     }
+  };
+
+  const handleClientClick = (client: Client) => {
+    setSelectedClient(client);
   };
 
   const filteredClients = clients?.data.filter(client =>
@@ -246,16 +231,26 @@ export function ClientSelection({ onComplete }: ClientSelectionProps) {
               <TableRow
                 key={client.id}
                 className={selectedClient?.id === client.id ? "bg-muted" : ""}
-                onClick={() => setSelectedClient(client)}
+                onClick={() => handleClientClick(client)}
               >
                 <TableCell>{client.name}</TableCell>
                 <TableCell>
                   <Badge variant="outline">
-                    {client.isActive ? 'Active' : 'Inactive'}
+                    {client.isActive ? 'Activo' : 'Inactivo'}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleClientClick(client);
+                        setIsDialogOpen(true);
+                      }}
+                    >
+                      Historial de transacciones
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -292,105 +287,12 @@ export function ClientSelection({ onComplete }: ClientSelectionProps) {
       </div>
 
       {selectedClient && (
-        <>
-          <h3 className="text-lg font-semibold mt-6">Historial de Transacciones</h3>
-          <div className="border rounded-lg">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Fecha</TableHead>
-                  <TableHead>Notas</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Ingreso</TableHead>
-                  <TableHead>Egreso</TableHead>
-                  <TableHead>Creado por</TableHead>
-                  <TableHead>Transacción Padre</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoadingTransactions ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8">
-                      Cargando transacciones...
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  <>
-                    {clientTransactions?.data.map((transaction: Transaction) => (
-                      <TableRow key={transaction.id}>
-                        <TableCell>
-                          {format(new Date(transaction.date), "dd/MM/yyyy HH:mm", { locale: es })}
-                        </TableCell>
-                        <TableCell>{transaction.notes}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              transaction.state === "COMPLETED"
-                                ? "default"
-                                : "outline"
-                            }
-                          >
-                            {transaction.state === "COMPLETED"
-                              ? "Completada"
-                              : "Pendiente"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {transaction.details
-                            .filter(detail => detail.movementType === "INCOME")
-                            .reduce((sum, detail) => sum + detail.amount, 0)
-                            .toLocaleString()}
-                        </TableCell>
-                        <TableCell>
-                          {transaction.details
-                            .filter(detail => detail.movementType === "EXPENSE")
-                            .reduce((sum, detail) => sum + detail.amount, 0)
-                            .toLocaleString()}
-                        </TableCell>
-                        <TableCell>{transaction.createdBy}</TableCell>
-                        <TableCell>
-                          {transaction.parentTransaction ? (
-                            <Badge variant="secondary">
-                              {transaction.parentTransaction.id.slice(0, 8)}
-                            </Badge>
-                          ) : "-"}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => navigate(`/transactions/${transaction.id}`)}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            {transaction.state === "PENDING" && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => navigate(`/transactions/${transaction.id}`)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {!clientTransactions?.data.length && (
-                      <TableRow>
-                        <TableCell colSpan={9} className="text-center py-8">
-                          No hay transacciones para mostrar
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </>
+        <TransactionHistoryDialog
+          clientId={selectedClient.id}
+          clientName={selectedClient.name}
+          isOpen={isDialogOpen}
+          onClose={() => setIsDialogOpen(false)}
+        />
       )}
     </div>
   );

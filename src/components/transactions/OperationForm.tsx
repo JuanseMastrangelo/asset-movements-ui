@@ -25,12 +25,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { FileUpload } from "@/components/ui/file-upload";
 import { toast } from "sonner";
 import { Transaction, TransactionResponse } from "@/models/transaction";
+import { useNavigate, useParams } from "react-router-dom";
+import { transactionsService } from "@/services/api";
+import { Spinner } from "@/components/ui/spinner";
 
 interface Asset {
   id: string;
   name: string;
   type: string;
   amount: number;
+  isPercentage?: boolean;
 }
 
 interface TransactionRule {
@@ -39,8 +43,8 @@ interface TransactionRule {
 }
 
 interface OperationFormProps {
+  clientId: string;
   onComplete: (data: Transaction) => void;
-  initialData: Partial<Transaction>;
 }
 
 const operationSchema = z.object({
@@ -67,10 +71,14 @@ const operationSchema = z.object({
 
 type FormData = z.infer<typeof operationSchema>;
 
-export function OperationForm({ onComplete, initialData }: OperationFormProps) {
+export function OperationForm({ onComplete, clientId }: OperationFormProps) {
+  const { id } = useParams<{ id: string }>();
   const [files, setFiles] = useState<File[]>([]);
   const [percentageChange, setPercentageChange] = useState<string>("");
   const [filteredEgressAssets, setFilteredEgressAssets] = useState<Asset[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [isReadonly, setIsReadonly] = useState<boolean>(false);
+  const navigate = useNavigate();
 
   const form = useForm<FormData>({
     resolver: zodResolver(operationSchema),
@@ -94,9 +102,11 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
         throw error;
       }
     },
+    refetchOnWindowFocus: false,
+    refetchInterval: false,
   });
 
-  const { data: rulesData } = useQuery({
+  const { data: rulesData, isLoading: isLoadingRules } = useQuery({
     queryKey: ["transaction-rules"],
     queryFn: async () => {
       try {
@@ -110,25 +120,32 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
   });
 
   useEffect(() => {
-    if (initialData && initialData.details) {
-      const ingressDetail = initialData.details.find(
-        (d) => d.movementType === "INCOME"
-      );
-      const egressDetail = initialData.details.find(
-        (d) => d.movementType === "EXPENSE"
-      );
-
-      if (ingressDetail && egressDetail) {
-        form.reset({
-          ingressAssetId: ingressDetail.assetId,
-          ingressAmount: ingressDetail.amount,
-          egressAssetId: egressDetail.assetId,
-          egressAmount: egressDetail.amount,
-          notes: initialData.notes,
-        });
+    const loadTransaction = async () => {
+      setLoading(true);
+      if (id && assets) {
+        try {
+          const transaction = await transactionsService.getOne(id);
+          form.reset({
+            ingressAssetId: transaction.details.find(d => d.movementType === "INCOME")?.assetId || "",
+            ingressAmount: transaction.details.find(d => d.movementType === "INCOME")?.amount || 0,
+            egressAssetId: transaction.details.find(d => d.movementType === "EXPENSE")?.assetId || "",
+            egressAmount: transaction.details.find(d => d.movementType === "EXPENSE")?.amount || 0,
+            notes: transaction.notes || "",
+          });
+          if (transaction.state !== "PENDING") {
+            setIsReadonly(true);
+          }
+          setLoading(false);
+        } catch (error) {
+          toast.error("No se pudo cargar la transacción");
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
       }
-    }
-  }, [initialData, form]);
+    };
+    loadTransaction();
+  }, [id, assets]);
 
   useEffect(() => {
     if (form.watch("ingressAmount") && form.watch("egressAmount")) {
@@ -186,9 +203,9 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
         toast.error("Debes seleccionar ambos activos");
         return;
       }
-  
+      console.log(clientId);
       const body = {
-        clientId: initialData?.clientId,
+        clientId: !id ? clientId : null,
         notes: data.notes || "",
         details: [
           {
@@ -207,14 +224,15 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
       };
   
       let response;
-      if (initialData && initialData.id) {
+      if (id) {
         // Actualizar la transacción existente
-        response = await api.patch<TransactionResponse>(`transactions/${initialData.id}`, body);
+        response = await api.patch<TransactionResponse>(`transactions/${id}`, body);
         toast.success("Transacción actualizada correctamente");
       } else {
         // Crear una nueva transacción
         response = await api.post<TransactionResponse>("transactions", body);
         toast.success("Transacción creada correctamente");
+        navigate(`/transactions/${response.data.data.id}`);
       }
       onComplete(response.data.data);
   
@@ -262,8 +280,29 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
     }
   };
 
-  if (isLoadingAssets) {
-    return <div>Cargando activos...</div>;
+  // Verificar si al menos un activo seleccionado tiene isPercentage como true
+  const showPercentageField = () => {
+    const selectedIngressAsset = assets?.data.find(asset => asset.id === form.watch("ingressAssetId"));
+    const selectedEgressAsset = assets?.data.find(asset => asset.id === form.watch("egressAssetId"));
+    return selectedIngressAsset?.isPercentage || selectedEgressAsset?.isPercentage;
+  };
+
+  // Obtener el nombre del activo de egreso seleccionado
+  const selectedEgressAssetName = assets?.data.find(asset => asset.id === form.watch("egressAssetId"))?.name || "";
+  const selectedIngressAssetName = assets?.data.find(asset => asset.id === form.watch("ingressAssetId"))?.name || "";
+
+  // Calcular la cotización entre el activo de ingreso y el activo de egreso
+  const calculateExchangeRate = () => {
+    const ingressAmount = form.watch("ingressAmount");
+    const egressAmount = form.watch("egressAmount");
+    if (ingressAmount && egressAmount) {
+      return (egressAmount / ingressAmount).toFixed(2);
+    }
+    return "0.00";
+  };
+
+  if (isLoadingAssets || isLoadingRules || loading) {
+    return <Spinner />;
   }
 
   return (
@@ -277,7 +316,7 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Activo de Ingreso *</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isReadonly}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Seleccionar activo" />
@@ -306,11 +345,11 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
                     <Input
                       type="text"
                       inputMode="decimal"
-                      disabled={!form.watch("ingressAssetId")}
+                      disabled={isReadonly}
                       {...field}
                       value={formatAmount(field.value)}
                       onChange={(e) => {
-                        const value = e.target.value.replace(/[^\d,]/g, "");
+                        const value = e.target.value.replace(/[^-\d,]+/g, "");
                         if (value === "") {
                           field.onChange(0);
                           return;
@@ -339,7 +378,7 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Activo de Egreso *</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isReadonly}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Seleccionar activo" />
@@ -368,11 +407,11 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
                     <Input
                       type="text"
                       inputMode="decimal"
-                      disabled={!form.watch("egressAssetId")}
+                      disabled={isReadonly}
                       {...field}
                       value={formatAmount(field.value)}
                       onChange={(e) => {
-                        const value = e.target.value.replace(/[^\d,]/g, "");
+                        const value = e.target.value.replace(/[^-\d,]+/g, "");
                         if (value === "") {
                           field.onChange(0);
                           return;
@@ -394,23 +433,47 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
             />
           </div>
           {
-          form.watch("ingressAssetId") &&
-          <div className="flex justify-center mt-2 col-span-2">
-            <div className="flex items-center justify-center space-x-2 w-full">
-              <Input
-                type="number"
-                value={percentageChange}
-                onChange={(e) => {
-                  setPercentageChange(e.target.value);
-                  updateEgressFromPercentage(e.target.value);
-                }}
-                className="w-20 text-center"
-                min="0"
-                step="1"
-              />
-              <span>%</span>
+            selectedEgressAssetName && selectedIngressAssetName && (
+              <>
+              
+          {showPercentageField() ? (
+            <div className="flex justify-center mt-2 col-span-2">
+              <div className="flex items-center justify-center space-x-2 w-full">
+                <Input
+                  type="number"
+                  value={percentageChange}
+                  onChange={(e) => {
+                    setPercentageChange(e.target.value);
+                    updateEgressFromPercentage(e.target.value);
+                  }}
+                  className="w-20 text-center"
+                  min="0"
+                  step="1"
+                  disabled={isReadonly}
+                />
+                <span>%</span>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex justify-center mt-2 col-span-2">
+              <div className="flex flex-row items-center">
+                <div className="w-auto">
+                  1 {selectedIngressAssetName} =
+                </div> 
+                <div className="flex items-center justify-center space-x-2 w-full">
+                  <Input
+                    type="text"
+                    value={calculateExchangeRate()}
+                    className="w-20 text-center"
+                    disabled
+                  />
+                  <span>{selectedEgressAssetName}</span>
+                </div>
+              </div>
+            </div>
+          )}
+              </>
+            )
           }
         </div>
 
@@ -421,7 +484,7 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
             <FormItem>
               <FormLabel>Notas</FormLabel>
               <FormControl>
-                <Textarea {...field} />
+                <Textarea {...field} disabled={isReadonly} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -444,11 +507,13 @@ export function OperationForm({ onComplete, initialData }: OperationFormProps) {
 
         <div className="flex justify-between">
           <div className="space-x-2">
-            <Button type="button" variant="outline" onClick={downloadPdfPreview}>
+            <Button type="button" variant="outline" onClick={downloadPdfPreview} disabled={isReadonly}>
               Vista Previa PDF
             </Button>
           </div>
-          <Button type="submit">Crear Operación</Button>
+          <Button type="submit" onClick={(e) => { if (isReadonly) { e.preventDefault(); onComplete({} as Transaction); } }}>
+            {isReadonly ? "Siguiente" : "Guardar Operación"}
+          </Button>
         </div>
       </form>
     </Form>

@@ -9,8 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { Transaction } from "@/models/transaction";
 import { Client } from "@/models";
 import ValuesForm from "@/components/transactions/ValuesForm";
-import { api } from "@/services/api";
 import { LogisticsForm } from "@/components/transactions/LogisticsForm";
+import { Button } from "@/components/ui/button";
+import { TableCell, TableRow } from "@/components/ui/table";
+import { useNavigate } from "react-router-dom";
 
 const steps = [
   { id: "client", title: "Selección de Cliente" },
@@ -25,6 +27,7 @@ export function Transactions() {
   const params = useParams();
   const [currentStep, setCurrentStep] = useState<Step>("client");
   const [transactionData, setTransactionData] = useState<Partial<Transaction> | undefined>();
+  const navigate = useNavigate();
 
   // Fetch transaction details if an id exists
   const { data: transactionDetails, refetch: refetchTransactionDetails } = useQuery({
@@ -65,49 +68,28 @@ export function Transactions() {
     setCurrentStep("values");
   };
 
+  const handleValuesComplete = (redirectToLogistics: boolean) => {
+    if (redirectToLogistics) {
+      setCurrentStep("logistics");
+    }
+  };
+
   // Render component based on current step
   const renderStep = () => {
-    const { data: assets } = useQuery({
-      queryKey: ["assets"],
-      queryFn: async () => {
-        const response = await api.get<{ data: Array<{ id: string; name: string; type: string }> }>("/assets");
-        return response.data;
-      }
-    });
-
     switch (currentStep) {
       case "client":
         return <ClientSelection onComplete={handleClientSelection} />;
       case "operation":
         return (
           <OperationForm
+            clientId={transactionData?.clientId!}
             onComplete={handleOperationComplete}
-            initialData={transactionData!}
           />
         );
       case "values": {
-        // Extract allowed totals from the transaction details (from step 2)
-        const incomeDetail = transactionData?.details?.find(
-          (detail) => detail.movementType === "INCOME"
-        );
-        const expenseDetail = transactionData?.details?.find(
-          (detail) => detail.movementType === "EXPENSE"
-        );
-        const allowedIngressTotal = incomeDetail ? incomeDetail.amount : 0;
-        const allowedEgressTotal = expenseDetail ? expenseDetail.amount : 0;
-
-        const ingressAsset = assets?.data.find(asset => asset.id === incomeDetail?.assetId);
-        const egressAsset = assets?.data.find(asset => asset.id === expenseDetail?.assetId);
-
         return (
           <ValuesForm
-            transactionId={transactionData!.id!}
-            allowedIngressTotal={allowedIngressTotal}
-            allowedEgressTotal={allowedEgressTotal}
-            operationType={ingressAsset?.type === "PHYSICAL" ? "Physic" : "Virtual"}
-            ingressAssetName={ingressAsset?.name || ""}
-            egressAssetName={egressAsset?.name || ""}
-          />
+          onComplete={handleValuesComplete} />
         );
       }
       case "logistics":
@@ -179,6 +161,14 @@ export function Transactions() {
       </div>
 
       <Card className="p-6">{renderStep()}</Card>
+
+      {transactionDetails && (
+        <TableRow>
+          <TableCell colSpan={3} className="text-center">
+            <Button variant="outline" onClick={() => navigate(`/transactions/${transactionDetails.id}`)}>Crear transacción hija</Button>
+          </TableCell>
+        </TableRow>
+      )}
     </div>
   );
 }

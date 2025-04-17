@@ -1,3 +1,13 @@
+import { Asset } from "./asset";
+import { Denomination } from "./denomination";
+
+interface BillDetail {
+  denominationId: string;
+  quantity: number;
+  receivedDate: string;
+  denomination: Denomination;
+}
+
 interface TransactionDetail {
   id: string;
   transactionId: string;
@@ -9,6 +19,8 @@ interface TransactionDetail {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+  asset: Asset;
+  billDetails: BillDetail[];
 }
 
 interface Client {
@@ -27,7 +39,7 @@ export interface Transaction {
   id: string;
   clientId: string;
   date: string;
-  state: "PENDING" | "COMPLETED" | "CANCELLED";
+  state: "PENDING" | "CURRENT_ACCOUNT" | "COMPLETED" | "CANCELLED";
   notes: string;
   createdBy: string;
   parentTransactionId: string | null;
