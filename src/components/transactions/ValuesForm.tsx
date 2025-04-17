@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { api, transactionsService, denominationsService } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +24,6 @@ interface ValuesFormProps {
 }
 
 const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
-  const navigate = useNavigate();
   const params = useParams();
   const [ingressRows, setIngressRows] = useState<BillRow[]>([{ count: "", billValue: "", denominationId: "", receivedDate: "", movementType: "", quantity: 0 }]);
   const [egressRows, setEgressRows] = useState<BillRow[]>([{ count: "", billValue: "", denominationId: "", receivedDate: "", movementType: "", quantity: 0 }]);
@@ -110,15 +109,31 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
     setEgressRows(updatedRows);
   };
 
+  const handleRemoveIngressRow = (index: number) => {
+    const updatedRows = [...ingressRows];
+    if (ingressRows.length === 1) {
+      updatedRows[index] = { count: "", billValue: "", denominationId: "", receivedDate: "", movementType: "", quantity: 0 };
+    } else {
+      updatedRows.splice(index, 1);
+    }
+    setIngressRows(updatedRows);
+  };
+
+  const handleRemoveEgressRow = (index: number) => {
+    const updatedRows = [...egressRows];
+    if (egressRows.length === 1) {
+      updatedRows[index] = { count: "", billValue: "", denominationId: "", receivedDate: "", movementType: "", quantity: 0 };
+    } else {
+      updatedRows.splice(index, 1);
+    }
+    setEgressRows(updatedRows);
+  };
+
   const allRowsComplete = (rows: BillRow[]): boolean =>
     rows.every((row) => row.count !== "" && row.billValue !== "");
 
   // Handle submission (PATCH transaction state to CURRENT_ACCOUNT)
   const handleSubmit = async (redirectToLogistics: boolean) => {
-    if (!allRowsComplete(ingressRows) || !allRowsComplete(egressRows)) {
-      setError("Por favor, complete todos los campos.");
-      return;
-    }
 
     const ingressTotal = calculateTotal(ingressRows);
     const egressTotal = calculateTotal(egressRows);
@@ -134,6 +149,20 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
 
     setError("");
     setIsSubmitting(true);
+
+    const ingressNewBillDetails = ingressRows.length > 0 && ingressRows.every(row => row.count !== "" && row.billValue !== "") ? ingressRows.map(row => ({
+      denominationId: row.denominationId,
+      quantity: parseInt(row.count, 10),
+      receivedDate: new Date().toISOString(),
+    })) : [];
+
+    const egressNewBillDetails = egressRows.length > 0 && egressRows.every(row => row.count !== "" && row.billValue !== "") ? egressRows.map(row => ({
+      denominationId: row.denominationId,
+      quantity: parseInt(row.count, 10),
+      receivedDate: new Date().toISOString(),
+    })) : [];
+    
+    
     try {
       const body = {
         state: "CURRENT_ACCOUNT",
@@ -144,12 +173,11 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
             amount: transactionDetails?.details?.find((detail) => detail.movementType === "INCOME")?.amount,
             movementType: "INCOME",
             billDetails: [
-              ...billDetailsIncome,
-              ...ingressRows.map(row => ({
+              ...billDetailsIncome.map(row => ({
                 denominationId: row.denominationId,
-                quantity: parseInt(row.count, 10),
-                receivedDate: new Date().toISOString(),
-              }))
+                quantity: row.quantity
+              })),
+              ...ingressNewBillDetails
             ]
           },
           {
@@ -157,12 +185,11 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
             amount: transactionDetails?.details?.find((detail) => detail.movementType === "EXPENSE")?.amount,
             movementType: "EXPENSE",
             billDetails: [
-              ...billDetailsEgress,
-              ...egressRows.map(row => ({
+              ...billDetailsEgress.map(row => ({
                 denominationId: row.denominationId,
-                quantity: parseInt(row.count, 10),
-                receivedDate: new Date().toISOString(),
-              }))
+                quantity: row.quantity
+              })),
+              ...egressNewBillDetails
             ]
           },
         ],
@@ -210,7 +237,7 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
                 <Select onValueChange={(value) => {
                   const [denominationId, billValue] = value.split("|");
                   handleIngressChange(index, { count: row.count, denominationId, billValue });
-                }} defaultValue={`${row.denominationId}|${row.billValue}`}>
+                }} value={`${row.denominationId}|${row.billValue}`}>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar denominación" />
                   </SelectTrigger>
@@ -223,6 +250,7 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
                   </SelectContent>
                 </Select>
               </div>
+              <button type="button" onClick={() => handleRemoveIngressRow(index)} className="ml-2 text-red-500">x</button>
               <div className="ml-2 text-sm">
                 {row.count && row.billValue && (
                   <>
@@ -274,7 +302,7 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
                 <Select onValueChange={(value) => {
                   const [denominationId, billValue] = value.split("|");
                   handleEgressChange(index, { count: row.count, denominationId, billValue });
-                }} defaultValue={`${row.denominationId}|${row.billValue}`}>
+                }} value={`${row.denominationId}|${row.billValue}`}>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar denominación" />
                   </SelectTrigger>
@@ -287,6 +315,7 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
                   </SelectContent>
                 </Select>
               </div>
+              <button type="button" onClick={() => handleRemoveEgressRow(index)} className="ml-2 text-red-500">x</button>
               <div className="ml-2 text-sm">
                 {row.count && row.billValue && (
                   <>

@@ -56,15 +56,6 @@ export function TransactionHistoryDialog({ clientId, clientName, isOpen, onClose
   };
 
   const parentTransactions = clientTransactions?.data.filter(transaction => !transaction.parentTransactionId);
-  const childTransactionsMap = clientTransactions?.data.reduce((acc, transaction) => {
-    if (transaction.parentTransactionId) {
-      if (!acc[transaction.parentTransactionId]) {
-        acc[transaction.parentTransactionId] = [];
-      }
-      acc[transaction.parentTransactionId].push(transaction);
-    }
-    return acc;
-  }, {} as Record<string, Transaction[]>) || {};
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -165,54 +156,54 @@ export function TransactionHistoryDialog({ clientId, clientName, isOpen, onClose
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
-                                {childTransactionsMap[transaction.id]?.map((childTransaction: Transaction) => (
-                                  <TableRow key={childTransaction.id} style={{ backgroundColor: 'transparent' }}>
-                                    <TableCell>
-                                      {`${format(new Date(childTransaction.date), "dd/MM/yyyy HH:mm", { locale: es })} - ${childTransaction.state === "COMPLETED" ? "Completada" : childTransaction.state === "CURRENT_ACCOUNT" ? "Cuenta Corriente" : "Pendiente"}`}
-                                    </TableCell>
-                                    <TableCell>
-                                      {childTransaction.details
-                                        .filter(detail => detail.movementType === "INCOME")
-                                        .map(detail => `${detail.amount.toLocaleString()} ${detail.asset.description}`)
-                                        .join(", ")}
-                                    </TableCell>
-                                    <TableCell>
-                                      {childTransaction.details
-                                        .filter(detail => detail.movementType === "EXPENSE")
-                                        .map(detail => `${detail.amount.toLocaleString()} ${detail.asset.description}`)
-                                        .join(", ")}
-                                    </TableCell>
-                                  </TableRow>
+                                {transaction.details?.map((detail) => (
+                                  detail.billDetails.map((billDetail) => (
+                                    <TableRow key={billDetail.id} style={{ backgroundColor: 'transparent' }}>
+                                      <TableCell>
+                                        {format(new Date(billDetail.createdAt), "dd/MM/yyyy HH:mm", { locale: es })}
+                                      </TableCell>
+                                      <TableCell>
+                                        {detail.movementType === "INCOME" && (
+                                          <Badge variant="outline">
+                                            {billDetail.quantity * billDetail.denomination.value} {detail.asset.description}
+                                          </Badge>
+                                        )}
+                                      </TableCell>
+                                      <TableCell>
+                                        {detail.movementType === "EXPENSE" && (
+                                          <Badge variant="outline">
+                                            {billDetail.quantity * billDetail.denomination.value} {detail.asset.description}
+                                          </Badge>
+                                        )}
+                                      </TableCell>
+                                    </TableRow>
+                                  ))
                                 ))}
-                                {transaction.state === "CURRENT_ACCOUNT" && (
-                                  <TableRow>
-                                    <TableCell>Total</TableCell>
-                                    <TableCell>
-                                      {(() => {
-                                        const totalIncome = childTransactionsMap[transaction.id]?.reduce((sum, childTransaction) => {
-                                          return sum + childTransaction.details
-                                            .filter(detail => detail.movementType === "INCOME")
-                                            .reduce((acc, detail) => acc + detail.amount, 0);
-                                        }, 0) - transaction.details
-                                          .filter(detail => detail.movementType === "INCOME")
-                                          .reduce((acc, detail) => acc + detail.amount, 0);
-                                        return totalIncome !== 0 ? <Badge variant="destructive">{totalIncome}</Badge> : totalIncome;
-                                      })()}
-                                    </TableCell>
-                                    <TableCell>
-                                      {(() => {
-                                        const totalExpense = childTransactionsMap[transaction.id]?.reduce((sum, childTransaction) => {
-                                          return sum + childTransaction.details
-                                            .filter(detail => detail.movementType === "EXPENSE")
-                                            .reduce((acc, detail) => acc + detail.amount, 0);
-                                        }, 0) - transaction.details
-                                          .filter(detail => detail.movementType === "EXPENSE")
-                                          .reduce((acc, detail) => acc + detail.amount, 0);
-                                        return totalExpense !== 0 ? <Badge variant="destructive">{totalExpense}</Badge> : totalExpense;
-                                      })()}
-                                    </TableCell>
-                                  </TableRow>
-                                )}
+                                <TableRow className="bg-gray-800 hover:bg-gray-800 text-white">
+                                  <TableCell>Restan:</TableCell>
+                                  <TableCell>
+                                    {(
+                                      transaction.details
+                                        .filter(detail => detail.movementType === "INCOME")
+                                        .reduce((total, detail) => total + detail.amount, 0) -
+                                      transaction.details
+                                        .filter(detail => detail.movementType === "INCOME")
+                                        .flatMap(detail => detail.billDetails)
+                                        .reduce((total, billDetail) => total + (billDetail.quantity * billDetail.denomination.value), 0)
+                                    ).toLocaleString()}
+                                  </TableCell>
+                                  <TableCell>
+                                    {(
+                                      transaction.details
+                                        .filter(detail => detail.movementType === "EXPENSE")
+                                        .reduce((total, detail) => total + detail.amount, 0) -
+                                      transaction.details
+                                        .filter(detail => detail.movementType === "EXPENSE")
+                                        .flatMap(detail => detail.billDetails)
+                                        .reduce((total, billDetail) => total + (billDetail.quantity * billDetail.denomination.value), 0)
+                                    ).toLocaleString()}
+                                  </TableCell>
+                                </TableRow>
                                 {(transaction.state === "CURRENT_ACCOUNT" || transaction.state === "PENDING") && (
                                   <TableRow>
                                     <TableCell colSpan={3} className="text-center">

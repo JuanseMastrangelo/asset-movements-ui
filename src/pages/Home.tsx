@@ -27,8 +27,6 @@ const formatAmount = (amount: number) => {
   return `${prefix}${Math.abs(amount).toLocaleString()}`;
 };
 
-type TransactionState = "PENDING" | "COMPLETED" | "CURRENT_ACCOUNT"
-
 export default function Home() {
   const navigate = useNavigate();
   const [selectedNote, setSelectedNote] = useState<string | null>(null)

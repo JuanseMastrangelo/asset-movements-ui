@@ -50,7 +50,7 @@ export default function Assets() {
     retry: 1,
   });
 
-  const totalPages = data?.meta?.totalPages || 1;
+  const totalPages = 1;
 
   const createMutation = useMutation({
     mutationFn: assetService.create,

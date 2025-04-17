@@ -19,24 +19,29 @@ import {
 } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Badge } from '../components/ui/badge';
 import { denominationsService, assetService } from '@/services/api';
 import { toast } from 'sonner';
 import { Trash2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
+interface Denomination {
+  id: string;
+  assetId: string;
+  value: number;
+  isActive: boolean;
+}
+
 export function Denominations() {
-  const [page, setPage] = useState(1);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [newDenomination, setNewDenomination] = useState({
+  const [newDenomination, setNewDenomination] = useState<Partial<Denomination>>({
     assetId: '',
     value: 0,
     isActive: true,
   });
-  const [editingDenomination, setEditingDenomination] = useState(null);
+  const [editingDenomination, setEditingDenomination] = useState<Denomination | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [denominationToDelete, setDenominationToDelete] = useState(null);
+  const [denominationToDelete, setDenominationToDelete] = useState<Denomination | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   const queryClient = useQueryClient();
@@ -47,7 +52,7 @@ export function Denominations() {
   });
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['denominations', page],
+    queryKey: ['denominations'],
     queryFn: () => denominationsService.getAll(),
     retry: 1,
   });
@@ -59,7 +64,7 @@ export function Denominations() {
     );
   }, [data, searchTerm]);
 
-  const createMutation = useMutation({
+  const createMutation = useMutation<Denomination, unknown, Denomination>({
     mutationFn: denominationsService.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['denominations'] });
@@ -73,8 +78,8 @@ export function Denominations() {
     },
   });
 
-  const editMutation = useMutation({
-    mutationFn: (data) =>
+  const editMutation = useMutation<Denomination, unknown, Denomination>({
+    mutationFn: (data: Denomination) =>
       denominationsService.update(data.id, {
         assetId: data.assetId,
         value: data.value,
@@ -88,8 +93,8 @@ export function Denominations() {
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (denominationId) => denominationsService.delete(denominationId),
+  const deleteMutation = useMutation<void, unknown, string>({
+    mutationFn: (denominationId: string) => denominationsService.delete(denominationId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['denominations'] });
       setIsDeleteDialogOpen(false);
@@ -98,24 +103,24 @@ export function Denominations() {
     },
   });
 
-  const handleCreate = async (e) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    createMutation.mutate(newDenomination);
+    createMutation.mutate(newDenomination as Denomination);
   };
 
-  const handleEdit = (denomination) => {
+  const handleEdit = (denomination: Denomination) => {
     setEditingDenomination(denomination);
     setIsEditDialogOpen(true);
   };
 
-  const handleEditSubmit = async (e) => {
+  const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editingDenomination) {
       editMutation.mutate(editingDenomination);
     }
   };
 
-  const handleDelete = (denomination) => {
+  const handleDelete = (denomination: Denomination) => {
     setDenominationToDelete(denomination);
     setIsDeleteDialogOpen(true);
   };
@@ -303,7 +308,7 @@ export function Denominations() {
             <DialogTitle>Confirmar Eliminación</DialogTitle>
           </DialogHeader>
           <p>
-            ¿Está seguro de que desea eliminar la denominación de {denominationToDelete?.asset.name}?
+            ¿Está seguro de que desea eliminar la denominación?
           </p>
           <div className="flex justify-end gap-2 mt-4">
             <Button

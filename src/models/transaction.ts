@@ -2,9 +2,11 @@ import { Asset } from "./asset";
 import { Denomination } from "./denomination";
 
 interface BillDetail {
+  id: string;
   denominationId: string;
   quantity: number;
   receivedDate: string;
+  createdAt: string;
   denomination: Denomination;
 }
 
