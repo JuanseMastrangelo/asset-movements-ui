@@ -11,17 +11,19 @@ import { Users } from './pages/Users';
 import { TransactionRules } from './pages/TransactionRules';
 import { Logistics } from './pages/Logistics';
 import { Denominations } from './pages/Denominations';
+import { TransactionHistory } from './pages/TransactionHistory';
 
 const AppRoutes = () => {
   const protectedRoutes = [
     { path: "/", element: <Home /> },
     { path: "/assets", element: <Assets /> },
     { path: "/transactions/:id?", element: <Transactions /> },
-    { path: "/clients", element: <Clients /> },
+    { path: "/clients/:clientName?", element: <Clients /> },
     { path: "/settings/users", element: <Users /> },
     { path: "/transaction-rules", element: <TransactionRules /> },
     { path: "/logistics", element: <Logistics /> },
     { path: "/denominations", element: <Denominations /> },
+    { path: "/transaction-history", element: <TransactionHistory /> },
   ];
 
   

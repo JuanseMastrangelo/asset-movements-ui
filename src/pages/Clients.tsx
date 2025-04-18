@@ -26,8 +26,10 @@ import { toast } from 'sonner';
 import debounce from 'lodash.debounce';
 import { ClientBalanceDialog } from '@/components/client-balance/ClientBalanceDialog';
 import { InfoIcon, PencilIcon, Trash2 } from 'lucide-react';
+import { useParams } from 'react-router-dom';
 
 export function Clients() {
+  const { clientName } = useParams<{ clientName: string }>();
   const [page, setPage] = useState(1);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newClient, setNewClient] = useState<CreateClientDto>({
@@ -67,6 +69,13 @@ export function Clients() {
       debouncedSearch.cancel();
     };
   }, [debouncedSearch]);
+
+  useEffect(() => {
+    if (clientName) {
+      setSearchInput(clientName);
+      setSearchTerm(clientName);
+    }
+  }, [clientName]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;

@@ -13,7 +13,7 @@ import { NavMain } from "./nav-main"
 import { NavUser } from "./nav-user"
 
 // This is sample data.
-const data = {
+export const data = {
   versions: ["1.0.1", "1.1.0-alpha", "2.0.0-beta1"],
   navMain: [
     {
@@ -59,7 +59,17 @@ const data = {
           url: "/denominations",
         }
       ],
-    }
+    },
+    {
+      title: "Centro de Operaciones",
+      url: "#",
+      items: [
+        {
+          title: "Historial de Transacciones",
+          url: "/transaction-history",
+        }
+      ],
+    },
   ],
 }
 

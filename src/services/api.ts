@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { LoginCredentials, RegisterCredentials, AuthResponse, Asset, CreateAssetDto, UpdateAssetDto, CreateClientDto, Client, ClientBalanceResponse } from '../models';
-import { TransactionResponse } from '@/models/transaction';
+import { TransactionResponse, TransactionSearchResponse } from '@/models/transaction';
 import { TransactionRuleResponse } from '@/models/transactionRule';
 import { toast } from 'sonner';
 import { CreateUserDto, User } from '@/models/user';
@@ -338,7 +338,16 @@ export const transactionsService = {
       const { data } = await api.get<TransactionResponse>(`/transactions/${transactionId}`);
       return data.data;
     } catch (error) {
-      console.error('Error fetching assets:', error);
+      console.error('Error fetching transaction:', error);
+      throw error;
+    }
+  },
+  search: async (params: { clientId?: string; state?: string; startDate?: string; endDate?: string; parentTransactionId?: string }) => {
+    try {
+      const { data } = await api.get<TransactionSearchResponse>(`/transactions/search`, { params });
+      return data;
+    } catch (error) {
+      console.error('Error searching transactions:', error);
       throw error;
     }
   }

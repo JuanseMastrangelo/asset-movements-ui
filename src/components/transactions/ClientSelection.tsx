@@ -19,7 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Mail, Eye, Plus } from "lucide-react";
+import { Mail, Eye, Plus, History } from "lucide-react";
 import { toast } from "sonner";
 import { Client } from "@/models";
 import { useForm } from "react-hook-form";
@@ -34,6 +34,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { TransactionHistoryDialog } from "./TransactionHistoryDialog";
+import { useNavigate } from 'react-router-dom';
 
 interface ClientSelectionProps {
   onComplete: (client: Client) => void;
@@ -54,6 +55,7 @@ export function ClientSelection({ onComplete }: ClientSelectionProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [open, setOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const navigate = useNavigate();
 
   const { data: clients, isLoading: isLoadingClients, refetch: refetchClients } = useQuery({
     queryKey: ["clients"],
@@ -248,7 +250,9 @@ export function ClientSelection({ onComplete }: ClientSelectionProps) {
                         handleClientClick(client);
                         setIsDialogOpen(true);
                       }}
+                      className="flex items-center gap-2"
                     >
+                      <History className="h-4 w-4" />
                       Historial de transacciones
                     </Button>
                     <Button
@@ -266,7 +270,7 @@ export function ClientSelection({ onComplete }: ClientSelectionProps) {
                       size="icon"
                       onClick={(e) => {
                         e.stopPropagation();
-                        window.open(`/clients/${client.id}`, '_blank');
+                        navigate(`/clients/${client.name}`);
                       }}
                     >
                       <Eye className="h-4 w-4" />

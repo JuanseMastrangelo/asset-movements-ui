@@ -62,7 +62,18 @@ interface Meta {
   path: string;
 }
 
+interface Pagination {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export interface TransactionResponse {
   data: Transaction;
   meta: Meta;
+}
+export interface TransactionSearchResponse {
+  data: Transaction[] ;
+  meta: Meta & { pagination: Pagination };
 }

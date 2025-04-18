@@ -9,7 +9,7 @@ import {
 } from './ui/sidebar';
 import { Separator } from './ui/separator';
 import { Button } from './ui/button';
-import { Moon, Sun } from 'lucide-react';
+import { Moon, PlusCircle, Sun } from 'lucide-react';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -18,6 +18,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from './ui/breadcrumb';
+import { data } from './app-sidebar';
+import { useNavigate } from 'react-router-dom';
 
 interface LayoutProps {
   children: ReactNode;
@@ -26,6 +28,19 @@ interface LayoutProps {
 export function Layout({ children }: LayoutProps) {
   const { user, logout } = useAuth();
   const { theme, setTheme } = useTheme();
+  const navigate = useNavigate();
+
+  const currentPath = window.location.pathname;
+  const currentSection = data.navMain.find(section =>
+    section.items.some(item => item.url === currentPath)
+  );
+  const breadcrumbItems = data.navMain.flatMap(section =>
+    section.items.map(item => ({
+      title: item.title,
+      url: item.url,
+    }))
+  );
+  const currentBreadcrumb = breadcrumbItems.find(item => item.url === currentPath);
 
   return (
     <SidebarProvider>
@@ -38,18 +53,21 @@ export function Layout({ children }: LayoutProps) {
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem>
-                  <BreadcrumbLink>
-                    Dashboard
-                  </BreadcrumbLink>
+                  <BreadcrumbLink href="#">{currentSection ? currentSection.title : 'Inicio'}</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>Inicio</BreadcrumbPage>
-                </BreadcrumbItem>
+                {currentBreadcrumb && (
+                  <BreadcrumbItem>
+                    <BreadcrumbPage>{currentBreadcrumb.title}</BreadcrumbPage>
+                  </BreadcrumbItem>
+                )}
               </BreadcrumbList>
             </Breadcrumb>
           </div>
           <div className="ml-auto flex items-center gap-4 px-4">
+            <Button className="bg-black text-white flex items-center gap-2" onClick={() => navigate('/transactions')}>
+              <PlusCircle className="w-4 h-4" /> Crear nueva transacción
+            </Button>
             <Button
               variant="ghost"
               size="icon"
