@@ -10,7 +10,7 @@ interface BillDetail {
   denomination: Denomination;
 }
 
-interface TransactionDetail {
+export interface TransactionDetail {
   id: string;
   transactionId: string;
   assetId: string;
@@ -37,6 +37,20 @@ interface Client {
   updatedAt: string;
 }
 
+interface ChildTransaction {
+  id: string;
+  state: "PENDING" | "CURRENT_ACCOUNT" | "COMPLETED" | "CANCELLED";
+  date: string;
+  notes: string;
+  details: {
+    assetId: string;
+    movementType: "INCOME" | "EXPENSE";
+    amount: number;
+    notes: string | null;
+    id: string;
+  }[];
+}
+
 export interface Transaction {
   id: string;
   clientId: string;
@@ -50,7 +64,7 @@ export interface Transaction {
   details: TransactionDetail[];
   client: Client;
   clientBalances: any[];
-  childTransactions: any[];
+  childTransactions: ChildTransaction[];
   parentTransaction: any | null;
   logistics: any | null;
 }

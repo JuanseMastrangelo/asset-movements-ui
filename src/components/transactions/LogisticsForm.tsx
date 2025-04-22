@@ -33,10 +33,6 @@ import { useToast } from "@/components/ui/use-toast";
 import { useState, useEffect } from "react";
 import { CalculateLogisticDto } from "@/models/logistic";
 
-interface LogisticsFormProps {
-  transactionId: string;
-}
-
 const logisticsSchema = z.object({
   deliveryDate: z.date().optional(),
   address: z.string().min(10, "La dirección debe tener al menos 10 caracteres"),
@@ -51,7 +47,7 @@ const logisticsSchema = z.object({
 
 type FormData = z.infer<typeof logisticsSchema>;
 
-export function LogisticsForm({}: LogisticsFormProps) {
+export function LogisticsForm() {
   const { toast } = useToast();
   const [logisticServices, setLogisticServices] = useState<Array<{ id: string; name: string }>>([]);
   const form = useForm<FormData>({

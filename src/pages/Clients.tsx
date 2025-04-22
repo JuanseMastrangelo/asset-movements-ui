@@ -285,7 +285,7 @@ export function Clients() {
                     <TableCell>{client.address}</TableCell>
                     <TableCell>{client.country}</TableCell>
                     <TableCell>
-                      <Badge variant={client.isActive ? 'default' : 'destructive'}>
+                      <Badge variant={client.isActive ? 'success' : 'destructive'}>
                         {client.isActive ? 'Activo' : 'Inactivo'}
                       </Badge>
                     </TableCell>

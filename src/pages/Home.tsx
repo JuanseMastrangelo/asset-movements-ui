@@ -3,7 +3,7 @@ import { assetService } from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { RefreshCw, Eye, CheckCircle } from 'lucide-react';
+import { RefreshCw, Eye } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -59,15 +59,6 @@ export default function Home() {
     refetchStock();
     refetchCurrentAccounts();
     refetchPendingTasks();
-  };
-
-  const handleCompleteTask = async (clientId: string) => {
-    try {
-      await assetService.completeTask(clientId);
-      refetchPendingTasks();
-    } catch (error) {
-      console.error('Error completing task:', error);
-    }
   };
 
   return (
@@ -243,14 +234,6 @@ export default function Home() {
                     </TableCell>
                     <TableCell className="sticky right-0 z-20">
                       <div className="flex justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleCompleteTask(client.clientId)}
-                        >
-                          <CheckCircle className="h-4 w-4 mr-2" />
-                          Marcar como completada
-                        </Button>
                         <Button
                           variant="outline"
                           size="sm"

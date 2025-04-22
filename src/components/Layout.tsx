@@ -1,5 +1,4 @@
 import { ReactNode } from 'react';
-import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { AppSidebar } from './app-sidebar';
 import {
@@ -26,7 +25,6 @@ interface LayoutProps {
 }
 
 export function Layout({ children }: LayoutProps) {
-  const { user, logout } = useAuth();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
 
@@ -65,13 +63,14 @@ export function Layout({ children }: LayoutProps) {
             </Breadcrumb>
           </div>
           <div className="ml-auto flex items-center gap-4 px-4">
-            <Button className="bg-black text-white flex items-center gap-2" onClick={() => navigate('/transactions')}>
-              <PlusCircle className="w-4 h-4" /> Crear nueva transacción
+            <Button effect="expandIcon" icon={PlusCircle} iconPlacement='left' className="bg-black text-white flex items-center gap-2" onClick={() => navigate('/transactions')}>
+               Crear nueva transacción
             </Button>
             <Button
-              variant="ghost"
               size="icon"
               onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+              effect="shine"
+              variant="outline"
             >
               {theme === "light" ? (
                 <Moon className="h-5 w-5" />
@@ -80,15 +79,6 @@ export function Layout({ children }: LayoutProps) {
               )}
               <span className="sr-only">Cambiar tema</span>
             </Button>
-            <span className="text-sm text-gray-500">
-              {user?.username}
-            </span>
-            <button
-              onClick={logout}
-              className="text-sm text-red-500 hover:text-red-700"
-            >
-              Cerrar sesión
-            </button>
           </div>
         </header>
         <main className="flex-1 overflow-y-auto p-4 mx-5 my-5">

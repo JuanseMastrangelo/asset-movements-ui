@@ -12,6 +12,7 @@ import { TransactionRules } from './pages/TransactionRules';
 import { Logistics } from './pages/Logistics';
 import { Denominations } from './pages/Denominations';
 import { TransactionHistory } from './pages/TransactionHistory';
+import { Conciliations } from './pages/Conciliations';
 
 const AppRoutes = () => {
   const protectedRoutes = [
@@ -24,6 +25,7 @@ const AppRoutes = () => {
     { path: "/logistics", element: <Logistics /> },
     { path: "/denominations", element: <Denominations /> },
     { path: "/transaction-history", element: <TransactionHistory /> },
+    { path: "/conciliations", element: <Conciliations /> },
   ];
 
   

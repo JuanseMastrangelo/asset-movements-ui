@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import {
@@ -38,6 +38,7 @@ import { useNavigate } from 'react-router-dom';
 
 interface ClientSelectionProps {
   onComplete: (client: Client) => void;
+  onClientSelected: (client: Client | undefined) => void;
 }
 
 const clientSchema = z.object({
@@ -50,7 +51,7 @@ const clientSchema = z.object({
 
 type ClientFormData = z.infer<typeof clientSchema>;
 
-export function ClientSelection({ onComplete }: ClientSelectionProps) {
+export function ClientSelection({ onComplete, onClientSelected }: ClientSelectionProps) {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [open, setOpen] = useState(false);
@@ -69,6 +70,10 @@ export function ClientSelection({ onComplete }: ClientSelectionProps) {
       }
     }
   });
+
+  useEffect(() => {
+    onClientSelected(selectedClient ?? undefined);
+  }, [selectedClient]);
 
   const form = useForm<ClientFormData>({
     resolver: zodResolver(clientSchema),
@@ -97,7 +102,6 @@ export function ClientSelection({ onComplete }: ClientSelectionProps) {
       setOpen(false);
       form.reset();
       await refetchClients();
-      console.log(response);
       setSelectedClient(response.data.data);
     } catch (error) {
       toast.error("No se pudo crear el cliente");
@@ -128,8 +132,7 @@ export function ClientSelection({ onComplete }: ClientSelectionProps) {
         />
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button variant="outline">
-              <Plus className="h-4 w-4 mr-2" />
+            <Button variant="outline" icon={Plus} iconPlacement='left' effect="expandIcon">
               Nuevo Cliente
             </Button>
           </DialogTrigger>
@@ -237,7 +240,7 @@ export function ClientSelection({ onComplete }: ClientSelectionProps) {
               >
                 <TableCell>{client.name}</TableCell>
                 <TableCell>
-                  <Badge variant="outline">
+                  <Badge variant={client.isActive ? 'success' : 'destructive'}>
                     {client.isActive ? 'Activo' : 'Inactivo'}
                   </Badge>
                 </TableCell>

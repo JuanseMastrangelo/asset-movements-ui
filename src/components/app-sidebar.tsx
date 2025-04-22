@@ -67,6 +67,10 @@ export const data = {
         {
           title: "Historial de Transacciones",
           url: "/transaction-history",
+        },
+        {
+          title: "Conciliaciones",
+          url: "/conciliations",
         }
       ],
     },

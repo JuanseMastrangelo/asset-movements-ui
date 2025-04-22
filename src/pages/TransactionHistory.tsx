@@ -7,6 +7,8 @@ import { useParams } from 'react-router-dom';
 import { TransactionSearchResponse } from '@/models/transaction';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Input } from '../components/ui/input';
+import { Select, SelectTrigger, SelectContent, SelectItem } from '../components/ui/select';
 
 export function TransactionHistory() {
   const { clientId, state, startDate, endDate, parentTransactionId } = useParams();
@@ -41,47 +43,78 @@ export function TransactionHistory() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Historial de Transacciones</h1>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Fecha y Hora</TableHead>
-            <TableHead>Cliente</TableHead>
-            <TableHead>Estado</TableHead>
-            <TableHead>Resta por entregar</TableHead>
-            <TableHead>Resta por ingresar</TableHead>
-            <TableHead>Nota</TableHead>
-            <TableHead>Acciones</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {transactions.map(transaction => {
-            const incomeDetails = transaction.details.filter(detail => detail.movementType === 'INCOME');
-            const expenseDetails = transaction.details.filter(detail => detail.movementType === 'EXPENSE');
+      <div className="flex space-x-4">
+        <Input
+          type="date"
+          value={searchParams.startDate}
+          onChange={(e) => setSearchParams({ ...searchParams, startDate: e.target.value })}
+          placeholder="Fecha de inicio"
+        />
+        <Input
+          type="date"
+          value={searchParams.endDate}
+          onChange={(e) => setSearchParams({ ...searchParams, endDate: e.target.value })}
+          placeholder="Fecha de fin"
+        />
+        <Select onValueChange={(value) => setSearchParams({ ...searchParams, state: value })}>
+          <SelectTrigger className="w-[180px]">
+            <SelectContent>
+              <SelectItem value="PENDING">Pendiente</SelectItem>
+              <SelectItem value="COMPLETED">Completado</SelectItem>
+              <SelectItem value="CANCELLED">Cancelado</SelectItem>
+            </SelectContent>
+          </SelectTrigger>
+        </Select>
+        <Input
+          type="text"
+          value={searchParams.clientId}
+          onChange={(e) => setSearchParams({ ...searchParams, clientId: e.target.value })}
+          placeholder="Buscar cliente"
+        />
+      </div>
+      <div className="border rounded-md">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Fecha y Hora</TableHead>
+              <TableHead>Cliente</TableHead>
+              <TableHead>Estado</TableHead>
+              <TableHead>Resta por entregar</TableHead>
+              <TableHead>Resta por ingresar</TableHead>
+              <TableHead>Nota</TableHead>
+              <TableHead>Acciones</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {transactions.map(transaction => {
+              const incomeDetails = transaction.details.filter(detail => detail.movementType === 'INCOME');
+              const expenseDetails = transaction.details.filter(detail => detail.movementType === 'EXPENSE');
 
-            const remainingToDeliver = incomeDetails.map(detail => ({
-              assetName: detail.asset.name,
-              remaining: detail.amount - detail.billDetails.reduce((sum, billDetail) => sum + billDetail.quantity * billDetail.denomination.value, 0)
-            }));
+              const remainingToDeliver = incomeDetails.map(detail => ({
+                assetName: detail.asset.name,
+                remaining: detail.amount - detail.billDetails.reduce((sum, billDetail) => sum + billDetail.quantity * billDetail.denomination.value, 0)
+              }));
 
-            const remainingToEnter = expenseDetails.map(detail => ({
-              assetName: detail.asset.name,
-              remaining: detail.amount - detail.billDetails.reduce((sum, billDetail) => sum + billDetail.quantity * billDetail.denomination.value, 0)
-            }));
+              const remainingToEnter = expenseDetails.map(detail => ({
+                assetName: detail.asset.name,
+                remaining: detail.amount - detail.billDetails.reduce((sum, billDetail) => sum + billDetail.quantity * billDetail.denomination.value, 0)
+              }));
 
-            return (
-              <TableRow key={transaction.id}>
-                <TableCell>{format(new Date(transaction.createdAt), "dd/MM/yyyy HH:mm:ss", { locale: es })}</TableCell>
-                <TableCell>{transaction.client.name}</TableCell>
-                <TableCell><span className={`badge badge-${transaction.state.toLowerCase()}`}>{transaction.state}</span></TableCell>
-                <TableCell>{remainingToDeliver.map(item => `${item.assetName}: ${item.remaining}`).join(', ')}</TableCell>
-                <TableCell>{remainingToEnter.map(item => `${item.assetName}: ${item.remaining}`).join(', ')}</TableCell>
-                <TableCell style={{ width: '200px' }} title={transaction.notes}>{transaction.notes.length > 30 ? `${transaction.notes.substring(0, 30)}...` : transaction.notes}</TableCell>
-                <TableCell><button className="icon-button"><i className="icon-eye"></i></button></TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+              return (
+                <TableRow key={transaction.id}>
+                  <TableCell>{format(new Date(transaction.createdAt), "dd/MM/yyyy HH:mm:ss", { locale: es })}</TableCell>
+                  <TableCell>{transaction.client.name}</TableCell>
+                  <TableCell><span className={`badge badge-${transaction.state.toLowerCase()}`}>{transaction.state}</span></TableCell>
+                  <TableCell>{remainingToDeliver.map(item => `${item.assetName}: ${item.remaining}`).join(', ')}</TableCell>
+                  <TableCell>{remainingToEnter.map(item => `${item.assetName}: ${item.remaining}`).join(', ')}</TableCell>
+                  <TableCell style={{ width: '200px' }} title={transaction.notes}>{transaction.notes.length > 30 ? `${transaction.notes.substring(0, 30)}...` : transaction.notes}</TableCell>
+                  <TableCell><button className="icon-button"><i className="icon-eye"></i></button></TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
       {totalTransactions > transactionsPerPage && (
         <div className="pagination-buttons">
           {Array.from({ length: totalPages }, (_, index) => (

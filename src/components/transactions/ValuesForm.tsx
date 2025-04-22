@@ -30,7 +30,7 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
   const [error, setError] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-  const { data: transactionDetails, isLoading: isLoadingTransaction, refetch: refetchTransactionDetails } = useQuery({
+  const { data: transactionDetails, isLoading: isLoadingTransaction, error: transactionError, refetch: refetchTransactionDetails } = useQuery({
     queryKey: ["transaction", params.id],
     queryFn: async () => {
       if (!params.id) throw new Error("No transaction ID provided");
@@ -40,6 +40,11 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
     refetchInterval: false,
     enabled: !!params.id,
   });
+
+  if (transactionError) {
+    toast.error("Error al cargar los detalles de la transacción");
+    window.location.href = "/transactions";
+  }
 
   const { data: denominations, isLoading: isLoadingDenominations } = useQuery({
     queryKey: ["denominations"],
@@ -69,7 +74,21 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
 
   const billDetailsIncome = transactionDetails?.details.find((detail) => detail.movementType === "INCOME")?.billDetails || [];
   const billDetailsEgress = transactionDetails?.details.find((detail) => detail.movementType === "EXPENSE")?.billDetails || [];
+  
+  const childTransactions = transactionDetails?.childTransactions || [];
 
+  const pendingIngress = allowedIngressTotal - childTransactions
+    .flatMap(transaction => transaction.details)
+    .filter(detail => detail.movementType === "INCOME")
+    .reduce((total, detail) => total + detail.amount, 0);
+
+  const pendingEgress = allowedEgressTotal - childTransactions
+    .flatMap(transaction => transaction.details)
+    .filter(detail => detail.movementType === "EXPENSE")
+    .reduce((total, detail) => total + detail.amount, 0);
+
+  const isCompleted = transactionDetails?.state === "COMPLETED";
+  
   // Calculate total amount for a set of rows
   const calculateTotal = (rows: BillRow[]): number =>
     rows.reduce((total, row) => {
@@ -161,41 +180,33 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
       quantity: parseInt(row.count, 10),
       receivedDate: new Date().toISOString(),
     })) : [];
-    
-    
+
+    const ingressBody = {
+      assetId: ingressAssetId,
+      amount: ingressRows.reduce((total, row) => total + (+row.count * +row.billValue), 0),
+      movementType: "INCOME",
+      billDetails: ingressNewBillDetails
+    }
+
+    const egressBody = {
+      assetId: egressAssetId,
+      amount:  egressRows.reduce((total, row) => total + (+row.count * +row.billValue), 0),
+      movementType: "EXPENSE",
+      billDetails: egressNewBillDetails
+    }
+
+    const details = [];
+    if (ingressRows.length > 0 && ingressRows.every(row => row.count !== "" && row.billValue !== "")) details.push(ingressBody);
+    if (egressRows.length > 0 && egressRows.every(row => row.count !== "" && row.billValue !== "")) details.push(egressBody);
+
     try {
       const body = {
+        clientId: transactionDetails?.clientId,
         state: "CURRENT_ACCOUNT",
         notes: transactionDetails?.notes || "",
-        details: [
-          {
-            assetId: transactionDetails?.details?.find((detail) => detail.movementType === "INCOME")?.assetId || "",
-            amount: transactionDetails?.details?.find((detail) => detail.movementType === "INCOME")?.amount,
-            movementType: "INCOME",
-            billDetails: [
-              ...billDetailsIncome.map(row => ({
-                denominationId: row.denominationId,
-                quantity: row.quantity
-              })),
-              ...ingressNewBillDetails
-            ]
-          },
-          {
-            assetId: transactionDetails?.details?.find((detail) => detail.movementType === "EXPENSE")?.assetId || "",
-            amount: transactionDetails?.details?.find((detail) => detail.movementType === "EXPENSE")?.amount,
-            movementType: "EXPENSE",
-            billDetails: [
-              ...billDetailsEgress.map(row => ({
-                denominationId: row.denominationId,
-                quantity: row.quantity
-              })),
-              ...egressNewBillDetails
-            ]
-          },
-        ],
+        details: details,
       };
-
-      await api.patch(`transactions/${params.id}`, body);
+      await api.post(`transactions/${params.id}/child`, body);
       onComplete(redirectToLogistics);
       if (!redirectToLogistics) {
         refetchTransactionDetails();
@@ -213,6 +224,8 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
 
   return (
     <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+      {
+        !isCompleted ?
       <div className="flex rounded">
         {/* Ingreso Section */}
         <div className="flex-1 p-4 border-r">
@@ -272,9 +285,9 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
           </Button>
           <div className="mt-2 text-sm">
             Total Nuevo Ingreso: {calculateTotal(ingressRows)} <br />
-            Restante: {allowedIngressTotal - billDetailsIncome.reduce((total, detail) => total + (detail.quantity * detail.denomination.value), 0) - calculateTotal(ingressRows)}
+            Restante: {pendingIngress - billDetailsIncome.reduce((total, detail) => total + (detail.quantity * detail.denomination.value), 0) - calculateTotal(ingressRows)}
           </div>
-          {(allowedIngressTotal - billDetailsIncome.reduce((total, detail) => total + (detail.quantity * detail.denomination.value), 0) - calculateTotal(ingressRows) < 0) && (
+          {(pendingIngress - billDetailsIncome.reduce((total, detail) => total + (detail.quantity * detail.denomination.value), 0) - calculateTotal(ingressRows) < 0) && (
             <div className="text-red-500 text-sm">El total de ingresos supera lo permitido.</div>
           )}
         </div>
@@ -337,16 +350,20 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
           </Button>
           <div className="mt-2 text-sm">
             Total Nuevo Egreso: {calculateTotal(egressRows)} <br />
-            Restante: {allowedEgressTotal - billDetailsEgress.reduce((total, detail) => total + (detail.quantity * detail.denomination.value), 0) - calculateTotal(egressRows)}
+            Restante: {pendingEgress - billDetailsEgress.reduce((total, detail) => total + (detail.quantity * detail.denomination.value), 0) - calculateTotal(egressRows)}
           </div>
-          {(allowedEgressTotal - billDetailsEgress.reduce((total, detail) => total + (detail.quantity * detail.denomination.value), 0) - calculateTotal(egressRows) < 0) && (
+          {(pendingEgress - billDetailsEgress.reduce((total, detail) => total + (detail.quantity * detail.denomination.value), 0) - calculateTotal(egressRows) < 0) && (
             <div className="text-red-500 text-sm">El total de egreso supera lo permitido.</div>
           )}
         </div>
+        <hr />
+        {error && <div className="text-red-500">{error}</div>}
       </div>
-
-          <hr />
-      {error && <div className="text-red-500">{error}</div>}
+       :
+       <div className="flex justify-end space-x-4">
+          <div className="bg-green-500 text-white px-4 py-2 rounded-md">Transacción Completada</div>
+        </div>
+      }
       
       <div className="mt-6">
       <h2 className="text-lg font-semibold mb-2">Resumen General</h2>
@@ -362,35 +379,40 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
           <TableBody>
             <TableRow>
               <TableCell className="text-left py-2">Ingreso ({IngressData?.asset.name})</TableCell>
-              <TableCell className="text-left py-2">{allowedIngressTotal}</TableCell>
-              <TableCell className="text-left py-2">{billDetailsIncome.reduce((total, detail) => total + (detail.quantity * detail.denomination.value), 0)}</TableCell>
-              <TableCell className="text-left py-2">{allowedIngressTotal - billDetailsIncome.reduce((total, detail) => total + (detail.quantity * detail.denomination.value), 0)}</TableCell>
+              <TableCell className="text-left py-2">$ {allowedIngressTotal}</TableCell>
+              <TableCell className="text-left py-2">$ {childTransactions.flatMap(transaction => transaction.details).filter(detail => detail.movementType === "INCOME").reduce((total, detail) => total + detail.amount, 0)}</TableCell>
+              <TableCell className="text-left py-2">$ {pendingIngress}</TableCell>
             </TableRow>
             <TableRow>
             <TableCell className="text-left py-2">Egreso ({EgressData?.asset.name})</TableCell>
-              <TableCell className="text-left py-2">{allowedEgressTotal}</TableCell>
-              <TableCell className="text-left py-2">{billDetailsEgress.reduce((total, detail) => total + (detail.quantity * detail.denomination.value), 0)}</TableCell>
-              <TableCell className="text-left py-2">{allowedEgressTotal - billDetailsEgress.reduce((total, detail) => total + (detail.quantity * detail.denomination.value), 0)}</TableCell>
+              <TableCell className="text-left py-2">$ {allowedEgressTotal}</TableCell>
+              <TableCell className="text-left py-2">$ {childTransactions.flatMap(transaction => transaction.details).filter(detail => detail.movementType === "EXPENSE").reduce((total, detail) => total + detail.amount, 0)}</TableCell>
+              <TableCell className="text-left py-2">$ {pendingEgress}</TableCell>
             </TableRow>
           </TableBody>
         </Table>
 
         <h2 className="text-lg font-semibold mb-2 mt-4">Resumen de Movimientos</h2>
-        {billDetailsIncome.length > 0 || billDetailsEgress.length > 0 ? (
+        {childTransactions.length > 0 ? (
           <Table className="min-w-full bg-white">
             <TableHeader>
               <TableRow>
                 <TableHead>Fecha</TableHead>
                 <TableHead>Tipo</TableHead>
                 <TableHead>Cantidad</TableHead>
-                <TableHead>Denominación</TableHead>
+                <TableHead>Nota</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {transactionDetails?.details.map((detail) =>
-                detail.billDetails.map((billDetail, index) => (
+              {childTransactions
+                .flatMap((transaction) => transaction.details.map((detail) => ({
+                  ...detail,
+                  date: transaction.date,
+                })))
+                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                .map((detail, index) => (
                   <TableRow key={index} className="border-t">
-                    <TableCell className="text-left py-2">{new Date(detail.createdAt).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}</TableCell>
+                    <TableCell className="text-left py-2">{new Date(detail.date).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}</TableCell>
                     <TableCell className="text-left py-2">
                       <Badge
                         variant={detail.movementType === "INCOME" ? "success" : "destructive"}
@@ -405,11 +427,10 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
                         {detail.movementType === "INCOME" ? "Ingreso" : "Egreso"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-left py-2">{billDetail.quantity}</TableCell>
-                    <TableCell className="text-left py-2">{billDetail.denomination.value}</TableCell>
+                    <TableCell className="text-left py-2">$ {detail.amount} {transactionDetails?.details.find((d) => d.assetId === detail.assetId)?.asset.name}</TableCell>
+                    <TableCell className="text-left py-2">{detail.notes}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
             </TableBody>
           </Table>
         ) : (
@@ -417,7 +438,10 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
         )}
       </div>
 
-      <div className="flex justify-end space-x-4">
+      {
+        !isCompleted &&
+        <>
+        <div className="flex justify-end space-x-4">
         <Button
           type="button"
           variant="outline"
@@ -428,8 +452,8 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
               !allRowsComplete(egressRows)
             ) ||
             (
-              (allowedIngressTotal - billDetailsIncome.reduce((total, detail) => total + (detail.quantity * detail.denomination.value), 0) - calculateTotal(ingressRows) < 0) ||
-              (allowedEgressTotal - billDetailsEgress.reduce((total, detail) => total + (detail.quantity * detail.denomination.value), 0) - calculateTotal(egressRows) < 0)
+              (pendingIngress - calculateTotal(ingressRows) < 0) ||
+              (pendingEgress - calculateTotal(egressRows) < 0)
             )
           }
           onClick={() => handleSubmit(false)}
@@ -445,8 +469,8 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
               !allRowsComplete(egressRows)
             ) ||
             (
-              (allowedIngressTotal - billDetailsIncome.reduce((total, detail) => total + (detail.quantity * detail.denomination.value), 0) - calculateTotal(ingressRows) < 0) ||
-              (allowedEgressTotal - billDetailsEgress.reduce((total, detail) => total + (detail.quantity * detail.denomination.value), 0) - calculateTotal(egressRows) < 0)
+              (pendingIngress - calculateTotal(ingressRows) < 0) ||
+              (pendingEgress - calculateTotal(egressRows) < 0)
             )
           }
           onClick={() => handleSubmit(true)}
@@ -454,6 +478,8 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
           Guardar Carga de valores con logística
         </Button>
       </div>
+      </>
+      }
     </form>
   );
 };

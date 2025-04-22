@@ -43,7 +43,7 @@ interface TransactionRule {
 }
 
 interface OperationFormProps {
-  clientId: string;
+  clientId: string | undefined;
   onComplete: (data: Transaction) => void;
 }
 
@@ -203,7 +203,6 @@ export function OperationForm({ onComplete, clientId }: OperationFormProps) {
         toast.error("Debes seleccionar ambos activos");
         return;
       }
-      console.log(clientId);
       const body = {
         clientId: !id ? clientId : null,
         notes: data.notes || "",
@@ -232,7 +231,7 @@ export function OperationForm({ onComplete, clientId }: OperationFormProps) {
         // Crear una nueva transacción
         response = await api.post<TransactionResponse>("transactions", body);
         toast.success("Transacción creada correctamente");
-        navigate(`/transactions/${response.data.data.id}`);
+        navigate(`/transactions/${response.data.data.id}?step=values`);
       }
       onComplete(response.data.data);
   
