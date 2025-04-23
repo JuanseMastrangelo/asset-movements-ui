@@ -7,6 +7,7 @@ import { CreateUserDto, User } from '@/models/user';
 import { CreateLogisticConfigDto, LogisticConfig, LogisticConfigResponse } from '@/models/logistic';
 import { CalculateLogisticDto } from '@/models/logistic';
 import { Denomination } from '@/models/denomination';
+import { AuditResponse } from '@/models/audit';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -168,8 +169,10 @@ export const clientService = {
 
 // Denominations Services
 export const denominationsService = {
-  getAll: async (): Promise<Denomination[]> => {
-    const { data } = await api.get<{ data: Denomination[] }>('/denominations');
+  getAll: async (page = 1): Promise<Denomination[]> => {
+    const { data } = await api.get<{ data: Denomination[]; total: number }>('/denominations', {
+      params: { page },
+    });
     return data.data;
   },
 
@@ -342,7 +345,7 @@ export const transactionsService = {
       throw error;
     }
   },
-  search: async (params: { clientId?: string; state?: string; startDate?: string; endDate?: string; parentTransactionId?: string }) => {
+  search: async (params: { clientId?: string; state?: string; startDate?: string; endDate?: string; parentTransactionId?: string, page?: number }) => {
     try {
       const { data } = await api.get<TransactionSearchResponse>(`/transactions/search`, { params });
       return data;
@@ -350,8 +353,35 @@ export const transactionsService = {
       console.error('Error searching transactions:', error);
       throw error;
     }
+  },
+  conciliations: async () => {
+    try {
+      const { data } = await api.get<TransactionSearchResponse>('/transactions/immutable-assets-open');
+      return data;
+    } catch (error) {
+      console.error('Error fetching conciliations:', error);
+      throw error;
+    }
+  },
+  conciliateImmutableAssets: async (body: any) => {
+    try {
+      const { data } = await api.post('/transactions/conciliate-immutable-assets', body);
+      return data;
+    } catch (error) {
+      console.error('Error conciliating transactions:', error);
+      throw error;
+    }
   }
 }; 
+
+export const auditService = {
+  getAll: async (page = 1) => {
+    const { data } = await api.get<AuditResponse>('/audit', {
+      params: { page },
+    });
+    return data;
+  },
+};
 
 // Users Services
 export const usersService = {

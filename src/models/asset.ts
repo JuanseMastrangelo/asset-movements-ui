@@ -4,6 +4,7 @@ export interface Asset {
   description: string;
   type: 'PHYSICAL' | 'DIGITAL';
   isPercentage: boolean;
+  isImmutable?: boolean;
   isMtherAccount: boolean;
   isActive: boolean;
 }

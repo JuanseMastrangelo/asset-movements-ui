@@ -71,6 +71,10 @@ export const data = {
         {
           title: "Conciliaciones",
           url: "/conciliations",
+        },
+        {
+          title: "Auditoría",
+          url: "/audit",
         }
       ],
     },

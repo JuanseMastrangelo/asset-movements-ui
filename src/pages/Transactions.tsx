@@ -91,7 +91,7 @@ export function Transactions() {
       case "client":
         return !params.id;
       case "operation":
-        return true;
+        return currentClient?.id;
       case "values":
         return params.id;
       case "logistics":
@@ -106,8 +106,8 @@ export function Transactions() {
         <h1 className="text-3xl font-bold">
           {currentClient ? (
             <div className="flex items-center gap-2">
-              Transacción | <div className="bg-black text-white px-2 py-1 rounded-md">{currentClient.name}</div>
-              <Badge variant="outline">Transacción ID: {currentClient.id}</Badge>
+              Transacción | <div className="bg-black text-white px-2 py-1 mt-2 rounded-md text-sm">{currentClient.name}</div>
+              <Badge variant="outline" className="mt-2">Transacción ID: {currentClient.id}</Badge>
             </div>
           ) : (
             "Nueva Transacción"

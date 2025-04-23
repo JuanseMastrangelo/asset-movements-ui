@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { api, transactionsService, denominationsService } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
+import { Denomination } from "@/models/denomination";
 
 interface BillRow {
   count: string;
@@ -29,6 +30,7 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
   const [egressRows, setEgressRows] = useState<BillRow[]>([{ count: "", billValue: "", denominationId: "", receivedDate: "", movementType: "", quantity: 0 }]);
   const [error, setError] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [note, setNote] = useState<string>("");
 
   const { data: transactionDetails, isLoading: isLoadingTransaction, error: transactionError, refetch: refetchTransactionDetails } = useQuery({
     queryKey: ["transaction", params.id],
@@ -46,11 +48,11 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
     window.location.href = "/transactions";
   }
 
-  const { data: denominations, isLoading: isLoadingDenominations } = useQuery({
+  const { data: denominations, isLoading: isLoadingDenominations } = useQuery<Denomination[], Error>({
     queryKey: ["denominations"],
-    queryFn: denominationsService.getAll,
-    refetchOnWindowFocus: false,
-    refetchInterval: false,
+    queryFn: async () => {
+      return denominationsService.getAll();
+    },
   });
 
   if (isLoadingTransaction || isLoadingDenominations) {
@@ -69,8 +71,8 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
   const ingressAssetId = IngressData?.assetId || "";
   const egressAssetId = EgressData?.assetId || "";
 
-  const filteredIngressDenominations = denominations?.filter(d => d.assetId === ingressAssetId) || [];
-  const filteredEgressDenominations = denominations?.filter(d => d.assetId === egressAssetId) || [];
+  const filteredIngressDenominations = denominations?.filter((d: Denomination) => d.assetId === ingressAssetId) || [];
+  const filteredEgressDenominations = denominations?.filter((d: Denomination) => d.assetId === egressAssetId) || [];
 
   const billDetailsIncome = transactionDetails?.details.find((detail) => detail.movementType === "INCOME")?.billDetails || [];
   const billDetailsEgress = transactionDetails?.details.find((detail) => detail.movementType === "EXPENSE")?.billDetails || [];
@@ -89,6 +91,18 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
 
   const isCompleted = transactionDetails?.state === "COMPLETED";
   
+  const hasImmutableAsset = transactionDetails?.details.some(detail => detail.asset.isImmutable);
+
+  if (hasImmutableAsset) {
+    return (
+      <div className="flex justify-center items-center h-full">
+        <div className="px-4 py-2 rounded-md w-1/2 text-center">
+          No se permite en este tipo de transacciones, cambia de activo para continuar ó dirigete a conciliaciones para realizar la carga de valores <Link to="/conciliations" className="text-blue-500 hover:text-blue-700">aquí</Link>.
+        </div>
+      </div>
+    );
+  }
+
   // Calculate total amount for a set of rows
   const calculateTotal = (rows: BillRow[]): number =>
     rows.reduce((total, row) => {
@@ -203,7 +217,7 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
       const body = {
         clientId: transactionDetails?.clientId,
         state: "CURRENT_ACCOUNT",
-        notes: transactionDetails?.notes || "",
+        notes: note,
         details: details,
       };
       await api.post(`transactions/${params.id}/child`, body);
@@ -213,6 +227,7 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
       }
       setIngressRows([{ count: "", billValue: "", denominationId: "", receivedDate: "", movementType: "", quantity: 0 }]);
       setEgressRows([{ count: "", billValue: "", denominationId: "", receivedDate: "", movementType: "", quantity: 0 }]);
+      setNote("");
       toast.success("Ingresos y egresos agregados correctamente.");
     } catch (err) {
       console.log(err);
@@ -364,8 +379,25 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
           <div className="bg-green-500 text-white px-4 py-2 rounded-md">Transacción Completada</div>
         </div>
       }
+
       
-      <div className="mt-6">
+
+      <div className="px-4">
+        <label htmlFor="transaction-note" className="block text-sm font-medium text-gray-700">
+          Nota de la Transacción
+        </label>
+        <textarea
+          id="transaction-note"
+          name="transaction-note"
+          rows={3}
+          placeholder="Agregar una nota..."
+          className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+        />
+      </div>
+      
+      <div className="mt-6 px-4">
       <h2 className="text-lg font-semibold mb-2">Resumen General</h2>
         <Table className="min-w-full bg-white">
           <TableHeader>
@@ -441,7 +473,7 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
       {
         !isCompleted &&
         <>
-        <div className="flex justify-end space-x-4">
+        <div className="flex justify-end space-x-4 px-4">
         <Button
           type="button"
           variant="outline"

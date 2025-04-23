@@ -22,8 +22,6 @@ import { Transaction } from "@/models/transaction";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from 'react-router-dom';
-import { Spinner } from "@/components/ui/spinner";
-import { transactionsService } from "@/services/api";
 
 interface TransactionHistoryDialogProps {
   clientId: string;
@@ -34,8 +32,6 @@ interface TransactionHistoryDialogProps {
 
 export function TransactionHistoryDialog({ clientId, clientName, isOpen, onClose }: TransactionHistoryDialogProps) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
-  const [transactionDetails, setTransactionDetails] = useState<Transaction | null>(null);
-  const [loadingTransaction, setLoadingTransaction] = useState<boolean>(false);
   const navigate = useNavigate();
 
   const { data: clientTransactions, isLoading: isLoadingTransactions } = useQuery({
@@ -47,35 +43,29 @@ export function TransactionHistoryDialog({ clientId, clientName, isOpen, onClose
     enabled: isOpen,
   });
 
-  const fetchTransactionDetails = async (transactionId: string) => {
-    setLoadingTransaction(true);
-    try {
-      const transactionDetails = await transactionsService.getOne(transactionId);
-      console.log(transactionDetails);
-      setTransactionDetails(transactionDetails);
-    } catch (error) {
-      console.error('Error fetching transaction details:', error);
-    } finally {
-      setLoadingTransaction(false);
-    }
-  };
-
   const toggleRow = (transactionId: string) => {
     setExpandedRows(prev => {
       const newSet = new Set(prev);
       if (newSet.has(transactionId)) {
         newSet.clear(); // Close all if manually closed
-        setTransactionDetails(null);
       } else {
         newSet.clear(); // Ensure only one is expanded
         newSet.add(transactionId);
-        fetchTransactionDetails(transactionId);
       }
       return newSet;
     });
   };
 
   const parentTransactions = clientTransactions?.data.filter(transaction => !transaction.parentTransactionId);
+  const childTransactionsMap = clientTransactions?.data.reduce((acc, transaction) => {
+    if (transaction.parentTransactionId) {
+      if (!acc[transaction.parentTransactionId]) {
+        acc[transaction.parentTransactionId] = [];
+      }
+      acc[transaction.parentTransactionId].push(transaction);
+    }
+    return acc;
+  }, {} as Record<string, Transaction[]>) || {};
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -106,7 +96,7 @@ export function TransactionHistoryDialog({ clientId, clientName, isOpen, onClose
                   return (
                     <>
                       <TableRow key={transaction.id} onClick={() => toggleRow(transaction.id)} style={{ cursor: 'pointer', backgroundColor: 'transparent' }}>
-                        <TableCell style={{ width: '250px' }}>
+                        <TableCell className="w-1/5">
                           <div className="flex items-center">
                             {expandedRows.has(transaction.id) ? (
                               <ChevronDown className="mr-2" />
@@ -116,7 +106,7 @@ export function TransactionHistoryDialog({ clientId, clientName, isOpen, onClose
                             {format(new Date(transaction.date), "dd/MM/yyyy HH:mm", { locale: es })}
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="w-1/5">
                           <Badge
                             variant={
                               transaction.state === "COMPLETED"
@@ -133,19 +123,19 @@ export function TransactionHistoryDialog({ clientId, clientName, isOpen, onClose
                               : "Pendiente"}
                           </Badge>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="w-1/6">
                           {transaction.details
                             .filter(detail => detail.movementType === "INCOME")
                             .map(detail => `${detail.amount.toLocaleString()} ${detail.asset.description}`)
                             .join(", ")}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="w-1/6">
                           {transaction.details
                             .filter(detail => detail.movementType === "EXPENSE")
                             .map(detail => `${detail.amount.toLocaleString()} ${detail.asset.description}`)
                             .join(", ")}
                         </TableCell>
-                        <TableCell style={{ width: '200px', padding: '0' }}>
+                        <TableCell className="w-1/4 p-0">
                           <div
                             title={transaction.notes}
                             style={{
@@ -161,84 +151,82 @@ export function TransactionHistoryDialog({ clientId, clientName, isOpen, onClose
                         </TableCell>
                       </TableRow>
                       {expandedRows.has(transaction.id) && (
-                        <TableRow>
-                          <TableCell colSpan={5} style={{ padding: '0' }} className="bg-white">
-                            {loadingTransaction ? (
-                              <div className="flex justify-center items-center py-4">
-                                <Spinner />
-                              </div>
-                            ) : (
-                              transactionDetails && (
-                                <div>
-                                  <div className="flex justify-between items-center px-4 pt-4 pb-2">
-                                    <div className="text-sm">Resumen General:</div>
-                                    <Badge variant="default">
-                                      {transactionDetails.childTransactions.length} transacciones en total
-                                    </Badge>
-                                  </div>
-                                  <Table className="mx-auto">
-                                    <TableHeader>
-                                      <TableRow>
-                                        <TableHead>Fecha</TableHead>
-                                        <TableHead>Ingreso</TableHead>
-                                        <TableHead>Egreso</TableHead>
-                                        <TableHead>Nota</TableHead>
-                                      </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                    {transactionDetails.childTransactions
-                                      .flatMap((transaction) => transaction.details.map((detail) => {
-                                        return ({
-                                          ...detail,
-                                          date: transaction.date,
-                                        })
-                                      }))
-                                      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-                                      .map((detail, index) => {
-                                        return (
-                                          <TableRow key={index} style={{ backgroundColor: 'transparent' }}>
-                                            <TableCell className="text-left py-2">{new Date(detail.date).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}</TableCell>
-                                            <TableCell className="text-left py-2">{detail.movementType === "INCOME" ? `$ ${detail.amount} ${transactionDetails?.details.find((d) => d.assetId === detail.assetId)?.asset.name}` : ''}</TableCell>
-                                            <TableCell className="text-left py-2">{detail.movementType === "EXPENSE" ? `$ ${detail.amount} ${transactionDetails?.details.find((d) => d.assetId === detail.assetId)?.asset.name}` : ''}</TableCell>
-                                            <TableCell className="text-left py-2">{detail.notes}</TableCell>
-                                          </TableRow>
-                                        )
-                                      })}
-                                      <TableRow className="bg-gray-800 hover:bg-gray-800 text-white">
-                                        <TableCell>Restan:</TableCell>
-                                        <TableCell>
-                                          $ {
-                                            (transactionDetails?.details?.find((detail) => detail.movementType === "INCOME")?.amount || 0) - transactionDetails.childTransactions
-                                            .flatMap(transaction => transaction.details)
+                      <TableRow>
+                        <TableCell colSpan={5} style={{ padding: '0' }} className="bg-white">
+                          <div>
+                            <Table className="mx-auto">
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Transacciones hijas</TableHead>
+                                  <TableHead>Ingreso</TableHead>
+                                  <TableHead>Egreso</TableHead>
+                                  <TableHead style={{ padding: '0' }}>Notas</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {childTransactionsMap[transaction.id]?.map((childTransaction: Transaction) => (
+                                  <TableRow key={childTransaction.id} style={{ backgroundColor: 'transparent' }}>
+                                    <TableCell className="w-2/5">
+                                      {`${format(new Date(childTransaction.date), "dd/MM/yyyy HH:mm", { locale: es })}`}
+                                    </TableCell>
+                                    <TableCell className="w-1/6">
+                                      $ {childTransaction.details
+                                        .filter(detail => detail.movementType === "INCOME")
+                                        .map(detail => `${detail.amount.toLocaleString()} ${detail.asset.description}`)
+                                        .join(", ") || 0}
+                                    </TableCell>
+                                    <TableCell className="w-1/6">
+                                      $ {childTransaction.details
+                                        .filter(detail => detail.movementType === "EXPENSE")
+                                        .map(detail => `${detail.amount.toLocaleString()} ${detail.asset.description}`)
+                                        .join(", ") || 0}
+                                    </TableCell>
+                                    <TableCell className="w-1/4">{childTransaction.notes}</TableCell>
+                                  </TableRow>
+                                ))}
+                                {transaction.state === "CURRENT_ACCOUNT" && (
+                                  <TableRow className="bg-gray-700 hover:bg-gray-700 text-white">
+                                    <TableCell className="w-1/4">Restan</TableCell>
+                                    <TableCell className="w-1/6">
+                                      {(() => {
+                                        const totalIncome = transaction.details
+                                        .filter(detail => detail.movementType === "INCOME")
+                                        .reduce((acc, detail) => acc + detail.amount, 0) - childTransactionsMap[transaction.id]?.reduce((sum, childTransaction) => {
+                                          return sum + childTransaction.details
                                             .filter(detail => detail.movementType === "INCOME")
-                                            .reduce((total, detail) => total + detail.amount, 0)
-                                          }
-                                        </TableCell>
-                                        <TableCell>
-                                          $ {
-                                            (transactionDetails?.details?.find((detail) => detail.movementType === "EXPENSE")?.amount || 0) - transactionDetails.childTransactions
-                                            .flatMap(transaction => transaction.details)
+                                            .reduce((acc, detail) => acc + detail.amount, 0);
+                                        }, 0) || 0;
+                                        return `$ ${totalIncome} ${transaction.details.find(detail => detail.movementType === "INCOME")?.asset.description}`
+                                      })()}
+                                    </TableCell>
+                                    <TableCell className="w-1/6">
+                                      {(() => {
+                                        const totalExpense = transaction.details
+                                        .filter(detail => detail.movementType === "EXPENSE")
+                                        .reduce((acc, detail) => acc + detail.amount, 0) - childTransactionsMap[transaction.id]?.reduce((sum, childTransaction) => {
+                                          return sum + childTransaction.details
                                             .filter(detail => detail.movementType === "EXPENSE")
-                                            .reduce((total, detail) => total + detail.amount, 0)
-                                          }
-                                        </TableCell>
-                                        <TableCell></TableCell>
-                                      </TableRow>
-                                      {(transactionDetails?.state === "CURRENT_ACCOUNT" || transactionDetails?.state === "PENDING") && (
-                                        <TableRow>
-                                          <TableCell colSpan={4} className="text-center">
-                                            <Button variant="outline" onClick={() => navigate(`/transactions/${transactionDetails.id}?step=values`)}>Crear transacción hija</Button>
-                                          </TableCell>
-                                        </TableRow>
-                                      )}
-                                    </TableBody>
-                                  </Table>
-                                </div>
-                              )
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      )}
+                                            .reduce((acc, detail) => acc + detail.amount, 0);
+                                        }, 0) || 0;
+                                        return `$ ${totalExpense} ${transaction.details.find(detail => detail.movementType === "EXPENSE")?.asset.description}`
+                                      })()}
+                                    </TableCell>
+                                    <TableCell className="w-1/4"></TableCell>
+                                  </TableRow>
+                                )}
+                                {(transaction.state === "CURRENT_ACCOUNT" || transaction.state === "PENDING") && (
+                                  <TableRow>
+                                    <TableCell colSpan={4} className="text-center">
+                                      <Button variant="outline" onClick={() => navigate(`/transactions/${transaction.id}?step=values`)}>Crear transacción hija</Button>
+                                    </TableCell>
+                                  </TableRow>
+                                )}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
                     </>
                   );
                 })

@@ -19,7 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Mail, Eye, Plus, History } from "lucide-react";
+import { Plus, History, User } from "lucide-react";
 import { toast } from "sonner";
 import { Client } from "@/models";
 import { useForm } from "react-hook-form";
@@ -85,15 +85,6 @@ export function ClientSelection({ onComplete, onClientSelected }: ClientSelectio
       country: "",
     },
   });
-
-  const handleSendReport = async (clientId: string) => {
-    try {
-      await api.post(`/clients/${clientId}/send-report`);
-      toast.success("Reporte enviado correctamente");
-    } catch (error) {
-      toast.error("No se pudo enviar el reporte");
-    }
-  };
 
   const handleCreateClient = async (data: ClientFormData) => {
     try {
@@ -263,20 +254,11 @@ export function ClientSelection({ onComplete, onClientSelected }: ClientSelectio
                       size="icon"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleSendReport(client.id);
-                      }}
-                    >
-                      <Mail className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
                         navigate(`/clients/${client.name}`);
                       }}
+                      title="Ver información del cliente"
                     >
-                      <Eye className="h-4 w-4" />
+                      <User className="h-4 w-4" />
                     </Button>
                   </div>
                 </TableCell>

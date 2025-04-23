@@ -30,6 +30,8 @@ export function TransactionRules() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newRule, setNewRule] = useState({ sourceAssetId: '', targetAssetId: '', isEnabled: true });
   const queryClient = useQueryClient();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [ruleToDelete, setRuleToDelete] = useState<string | null>(null);
 
   const { data: assetsData } = useQuery({
     queryKey: ['assets'],
@@ -74,8 +76,15 @@ export function TransactionRules() {
   };
 
   const handleDelete = (id: string) => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar esta regla?')) {
-      deleteMutation.mutate(id);
+    setRuleToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (ruleToDelete) {
+      deleteMutation.mutate(ruleToDelete);
+      setDeleteDialogOpen(false);
+      setRuleToDelete(null);
     }
   };
 
@@ -113,9 +122,9 @@ export function TransactionRules() {
               <DialogTitle>Crear Nueva Regla</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4">
-              <div className="flex space-x-4">
-                <div className="space-y-2">
-                  <Label htmlFor="asset1">Asset 1</Label>
+              <div className="flex flex-col gap-5 mt-4">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="asset1">Activo Ingresa</Label>
                   <Select
                     value={newRule.sourceAssetId}
                     onValueChange={(value) => setNewRule({ ...newRule, sourceAssetId: value })}
@@ -130,8 +139,8 @@ export function TransactionRules() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="asset2">Asset 2</Label>
+                <div className="flex flex-col gap-2 mb-3">
+                  <Label htmlFor="asset2">Activo Egresa</Label>
                   <Select
                     value={newRule.targetAssetId}
                     onValueChange={(value) => setNewRule({ ...newRule, targetAssetId: value })}
@@ -152,13 +161,28 @@ export function TransactionRules() {
                   Cancelar
                 </Button>
                 <Button type="submit">
-                  Crear
+                  Crear Regla
                 </Button>
               </div>
             </form>
           </DialogContent>
         </Dialog>
       </div>
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Eliminación</DialogTitle>
+          </DialogHeader>
+          <p>¿Está seguro de que desea eliminar esta regla?</p>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Cancelar</Button>
+            <Button variant="destructive" onClick={confirmDelete}>
+              Eliminar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="border rounded-md overflow-x-auto">
         <Table className="w-full">
