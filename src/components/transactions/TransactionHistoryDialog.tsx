@@ -152,7 +152,7 @@ export function TransactionHistoryDialog({ clientId, clientName, isOpen, onClose
                       </TableRow>
                       {expandedRows.has(transaction.id) && (
                       <TableRow>
-                        <TableCell colSpan={5} style={{ padding: '0' }} className="bg-white">
+                        <TableCell colSpan={5} style={{ padding: '0' }}>
                           <div>
                             <Table className="mx-auto">
                               <TableHeader>

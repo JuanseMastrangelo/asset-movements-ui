@@ -241,6 +241,7 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
     <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
       {
         !isCompleted ?
+        <>
       <div className="flex rounded">
         {/* Ingreso Section */}
         <div className="flex-1 p-4 border-r">
@@ -374,16 +375,9 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
         <hr />
         {error && <div className="text-red-500">{error}</div>}
       </div>
-       :
-       <div className="flex justify-end space-x-4">
-          <div className="bg-green-500 text-white px-4 py-2 rounded-md">Transacción Completada</div>
-        </div>
-      }
-
-      
 
       <div className="px-4">
-        <label htmlFor="transaction-note" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="transaction-note" className="block text-sm font-medium text-gray-700 dark:text-white">
           Nota de la Transacción
         </label>
         <textarea
@@ -391,15 +385,23 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
           name="transaction-note"
           rows={3}
           placeholder="Agregar una nota..."
-          className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-800 dark:text-white"
           value={note}
           onChange={(e) => setNote(e.target.value)}
         />
       </div>
+      </>
+       :
+       <div className="flex justify-end space-x-4">
+          <div className="bg-green-500 text-white px-4 py-2 rounded-md">Transacción Completada</div>
+        </div>
+      }
+
+      
       
       <div className="mt-6 px-4">
       <h2 className="text-lg font-semibold mb-2">Resumen General</h2>
-        <Table className="min-w-full bg-white">
+        <Table className="min-w-full ">
           <TableHeader>
             <TableRow>
               <TableHead>Tipo</TableHead>
@@ -426,7 +428,7 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
 
         <h2 className="text-lg font-semibold mb-2 mt-4">Resumen de Movimientos</h2>
         {childTransactions.length > 0 ? (
-          <Table className="min-w-full bg-white">
+          <Table className="min-w-full">
             <TableHeader>
               <TableRow>
                 <TableHead>Fecha</TableHead>
