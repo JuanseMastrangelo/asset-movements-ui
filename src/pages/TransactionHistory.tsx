@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { format, formatISO, parseISO } from "date-fns";
+import { format, formatISO, parseISO, setHours, setMinutes, setSeconds } from "date-fns";
 import { es } from "date-fns/locale";
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
@@ -19,6 +19,7 @@ import { DateRangePicker } from "@/components/ui/DatePickerWithRange";
 import { Eye, Link2 } from "lucide-react";
 import { PaginationControl } from "@/components/ui/PaginationControl";
 
+
 export function TransactionHistory() {
   const today = new Date();
   const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
@@ -35,9 +36,25 @@ export function TransactionHistory() {
 
   const formatDate = (dateString: string) => formatISO(parseISO(dateString), { representation: 'date' });
 
+  
+  // Función para formatear la fecha con hora mínima o máxima
+  const formatDateWithTime = (dateString: string, isStartDate: boolean) => {
+    const date = parseISO(dateString);
+    if (isStartDate) {
+      // Establecer la hora mínima (00:00:00) para startDate
+      const startDate = setHours(setMinutes(setSeconds(date, 0), 0), 0);
+      console.log(startDate);
+      return formatISO(startDate);
+    } else {
+      // Establecer la hora máxima (23:59:59) para endDate
+      const endDate = setHours(setMinutes(setSeconds(date, 59), 59), 23);
+      return formatISO(endDate);
+    }
+  };
+
   const { data, isLoading, error } = useQuery<TransactionSearchResponse>({
     queryKey: ['transactions', clientId, state, formatDate(startDate), formatDate(endDate), parentTransactionId, page],
-    queryFn: () => transactionsService.search({ clientId, state, startDate, endDate, parentTransactionId, page: parseInt(page) }),
+    queryFn: () => transactionsService.search({ clientId, state, startDate: formatDateWithTime(startDate, true), endDate: formatDateWithTime(endDate, false), parentTransactionId, page: parseInt(page) }),
     enabled: !!startDate && !!endDate,
   });
 
