@@ -105,7 +105,7 @@ export const ClientBalanceDialog: React.FC<ClientBalanceDialogProps> = ({ client
             <div className="mt-4">
               <Button
                 onClick={downloadCSV}
-                className='bg-primary text-white border'
+                variant="outline"
               >
                 Descargar Reporte (.csv)
               </Button>
