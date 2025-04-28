@@ -59,3 +59,35 @@ export interface CalculateLogisticResponse {
   };
   meta: Meta;
 }
+
+export interface LogisticData {
+    id: string;
+    transactionId: string;
+    originAddress: string;
+    destinationAddress: string;
+    distance: number;
+    price: number;
+    pricePerKm: number;
+    deliveryDate: string;
+    note: string;
+    paymentResponsibility: string;
+    status: string;
+    createdAt: string;
+    updatedAt: string;
+    transaction: {
+      id: string;
+      clientId: string;
+      date: string;
+      state: string;
+      notes: string;
+      createdBy: string;
+      parentTransactionId: string | null;
+      createdAt: string;
+      updatedAt: string;
+    };
+}
+
+export interface LogisticResponse {
+  data: LogisticData;
+  meta: Meta;
+}

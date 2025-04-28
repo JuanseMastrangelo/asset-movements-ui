@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { api } from "@/services/api";
+import { api, transactionsService } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -26,12 +26,16 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Printer } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { useToast } from "@/components/ui/use-toast";
 import { useState, useEffect } from "react";
-import { CalculateLogisticDto } from "@/models/logistic";
+import { CalculateLogisticDto, LogisticData } from "@/models/logistic";
+import { useParams } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { Spinner } from "@/components/ui/spinner";
+import { toast } from 'sonner';
+import { Badge } from "../ui/badge";
 
 const logisticsSchema = z.object({
   deliveryDate: z.date().optional(),
@@ -40,7 +44,7 @@ const logisticsSchema = z.object({
   contactName: z.string().min(3, "El nombre debe tener al menos 3 caracteres"),
   contactPhone: z.string().regex(/^\+?[0-9]{10,}$/, "Ingresa un número de teléfono válido"),
   specialInstructions: z.string().optional(),
-  paymentOption: z.enum(["Paga Cliente", "A medias", "Pagamos nosotros"]),
+  paymentOption: z.enum(["CLIENT", "SHARED", "SYSTEM"]),
   logisticService: z.string(),
   price: z.number().optional(),
 });
@@ -48,8 +52,10 @@ const logisticsSchema = z.object({
 type FormData = z.infer<typeof logisticsSchema>;
 
 export function LogisticsForm() {
-  const { toast } = useToast();
+  const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const [logisticServices, setLogisticServices] = useState<Array<{ id: string; name: string }>>([]);
+  const [logisticDetails, setLogisticDetails] = useState<LogisticData | null>(null);
   const form = useForm<FormData>({
     resolver: zodResolver(logisticsSchema),
     defaultValues: {
@@ -63,6 +69,8 @@ export function LogisticsForm() {
 
   const [price, setPrice] = useState<number | null>(null);
   const [isPriceButtonEnabled, setIsPriceButtonEnabled] = useState(false);
+  const [isLinkButtonEnabled, setIsLinkButtonEnabled] = useState(false);
+  const [isCalculating, setIsCalculating] = useState(false);
 
   useEffect(() => {
     // Obtener servicios de logística
@@ -71,11 +79,6 @@ export function LogisticsForm() {
         const response = await api.get("/logistics/settings");
         setLogisticServices(response.data.data);
       } catch (error) {
-        toast({
-          title: "Error",
-          description: "No se pudieron cargar los servicios de logística",
-          variant: "destructive",
-        });
       }
     };
 
@@ -87,7 +90,44 @@ export function LogisticsForm() {
     setIsPriceButtonEnabled(!!address && !!destinationAddress && !!logisticService);
   }, [form.watch("address"), form.watch("destinationAddress"), form.watch("logisticService")]);
 
+  useEffect(() => {
+    if (id && user) {
+      // Obtener la transacción por ID
+      const fetchTransaction = async () => {
+        try {
+          const transaction = await transactionsService.getOne(id);
+          form.setValue("destinationAddress", transaction.client.address || ""); // Rellenar Dirección de Destino
+
+          // Obtener la dirección del usuario
+          // const userData = await usersService.getById(user.id);
+          // form.setValue("address", userData.address || ""); // Rellenar Dirección de Origen
+        } catch (error) {
+        }
+      };
+
+      fetchTransaction();
+    }
+  }, [id, user]);
+
+  useEffect(() => {
+    if (id) {
+      // Verificar si ya existe logística
+      checkLogistic();
+    }
+  }, [id]);
+
+
+  const checkLogistic = async () => {
+    try {
+      const logisticData = await transactionsService.getLogistic(id!);
+      setLogisticDetails(logisticData.data);
+    } catch (error) {
+      setLogisticDetails(null); // Si no existe, continuar con el formulario
+    }
+  };
+
   const calculatePrice = async () => {
+    setIsCalculating(true);
     try {
       const data: CalculateLogisticDto = {
         originAddress: form.getValues("address"),
@@ -98,22 +138,27 @@ export function LogisticsForm() {
       const response = await api.post('/logistics/calculate', data);
       setPrice(response.data.data.totalPrice);
       setIsPriceButtonEnabled(false);
+      setIsLinkButtonEnabled(true);
     } catch (error) {
-      console.log(error)
+      console.log(error);
+      setIsLinkButtonEnabled(false);
+    } finally {
+      setIsCalculating(false);
     }
   };
 
   const downloadLogisticsTxt = () => {
-    const data = form.getValues();
+    if (!logisticDetails) return;
+
     const content = `
-      Dirección de Origen: ${data.address}
-      Dirección de Destino: ${data.destinationAddress}
-      Fecha de Entrega: ${data.deliveryDate ? format(data.deliveryDate, "PPP", { locale: es }) : "No especificada"}
-      Nota: ${data.specialInstructions || "Ninguna"}
-      Método de Pago: ${data.paymentOption}
-      Servicio de Logística: ${data.logisticService}
-      Precio: ${price}
+      Dirección de Origen: ${logisticDetails.originAddress}
+      Dirección de Destino: ${logisticDetails.destinationAddress}
+      Fecha de Entrega: ${logisticDetails.deliveryDate ? format(new Date(logisticDetails.deliveryDate), "PPP", { locale: es }) : "No especificada"}
+      Nota: ${logisticDetails.note || "Ninguna"}
+      Método de Pago: ${logisticDetails.paymentResponsibility === "CLIENT" ? "Cliente" : logisticDetails.paymentResponsibility === "SHARED" ? "Compartido" : "Sistema"}
+      Precio: $${logisticDetails.price} ARS
     `;
+    
     const blob = new Blob([content], { type: "text/plain" });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -124,24 +169,94 @@ export function LogisticsForm() {
     link.remove();
   };
 
+  const linkLogisticsToTransaction = async () => {
+    if (!id) return;
+
+    const formData = form.getValues();
+    const logisticData = {
+      transactionId: id,
+      originAddress: formData.address,
+      destinationAddress: formData.destinationAddress,
+      deliveryDate: formData.deliveryDate ? formData.deliveryDate.toISOString() : new Date().toISOString(),
+      note: formData.specialInstructions || "",
+      paymentResponsibility: formData.paymentOption,
+      status: "PENDING",
+    };
+
+    try {
+      await transactionsService.createLogistic(logisticData);
+      toast.success("Logística vinculada a la transacción correctamente");
+    } catch (error) {
+    }
+  };
+
   const onSubmit = async (data: FormData) => {
     try {
       await api.post("/logistics", data);
-      
-      toast({
-        title: "Éxito",
-        description: "Información logística guardada correctamente",
-      });
-
-      // Aquí puedes manejar la finalización del formulario
+      toast.success("Información logística guardada correctamente");
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudo guardar la información logística",
-        variant: "destructive",
-      });
     }
   };
+
+  const updateLogisticStatus = async (newStatus: string) => {
+    try {
+      await transactionsService.updateLogisticStatus(logisticDetails!.id!, newStatus);
+      toast.success("Estado actualizado correctamente");
+      checkLogistic();
+    } catch (error) {
+    }
+  };
+
+
+  if (!id) {
+    return <div>No se encontró la transacción</div>;
+  }
+
+  if (logisticDetails) {
+    // Mostrar detalles de logística si ya existe
+    return (
+      <div className="p-6 ">
+        <h2 className="text-2xl font-bold mb-4">Detalles de Logística</h2>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="pb-2 flex justify-between"><strong className="font-semibold">Dirección de Origen:</strong> <span>{logisticDetails.originAddress}</span></div>
+          <div className="pb-2 flex justify-between"><strong className="font-semibold">Dirección de Destino:</strong> <span>{logisticDetails.destinationAddress}</span></div>
+          <div className="pb-2 flex justify-between"><strong className="font-semibold">Distancia:</strong> <span>{logisticDetails.distance} km</span></div>
+          <div className="pb-2 flex justify-between"><strong className="font-semibold text-lg">Precio:</strong> <span className="text-lg text-green-600 font-bold">$ {logisticDetails.price} ARS</span></div>
+          <div className="pb-2 flex justify-between"><strong className="font-semibold">Precio por Km:</strong> <span>{logisticDetails.pricePerKm} ARS</span></div>
+          <div className="pb-2 flex justify-between"><strong className="font-semibold">Fecha de Entrega:</strong> <span>{format(new Date(logisticDetails.deliveryDate), "PPP", { locale: es })}</span></div>
+          <div className="pb-2 flex justify-between"><strong className="font-semibold">Nota:</strong> <span>{logisticDetails.note}</span></div>
+          <div className="pb-2 flex justify-between"><strong className="font-semibold">Responsabilidad de Pago:</strong> 
+            <span>{logisticDetails.paymentResponsibility === "CLIENT" ? "Cliente" : logisticDetails.paymentResponsibility === "SHARED" ? "Compartido" : "Sistema"}</span>
+          </div>
+          <div className="pb-2 flex justify-between items-center"><strong className="font-semibold">Estado:</strong> 
+            <Badge variant={logisticDetails.status === "PENDING" ? "default" : logisticDetails.status === "IN_PROGRESS" ? "secondary" : logisticDetails.status === "COMPLETED" ? "success" : "destructive"}>
+              {logisticDetails.status === "PENDING" ? "Pendiente" : logisticDetails.status === "IN_PROGRESS" ? "En Progreso" : logisticDetails.status === "COMPLETED" ? "Completado" : "Cancelado"}
+            </Badge>
+          </div>
+        </div>
+        <div className="flex gap-4 flex-row justify-between mt-5">
+          <div className="flex items-center gap-2">
+            Estado: 
+          <Select
+            defaultValue={logisticDetails.status}
+            onValueChange={(newStatus) => updateLogisticStatus(newStatus)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Seleccionar estado" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="PENDING">Pendiente</SelectItem>
+              <SelectItem value="IN_PROGRESS">En Progreso</SelectItem>
+              <SelectItem value="COMPLETED">Completado</SelectItem>
+              <SelectItem value="CANCELED">Cancelado</SelectItem>
+            </SelectContent>
+          </Select>
+          </div>
+          <Button variant="default" onClick={downloadLogisticsTxt}><Printer className="w-4 h-4 mr-2" />Imprimir resumen</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Form {...form}>
@@ -176,7 +291,7 @@ export function LogisticsForm() {
                     selected={field.value}
                     onSelect={field.onChange}
                     disabled={(date) =>
-                      date < new Date() || date > new Date(new Date().setMonth(new Date().getMonth() + 3))
+                      date < new Date(new Date().setHours(0, 0, 0, 0)) || date > new Date(new Date().setMonth(new Date().getMonth() + 3))
                     }
                     initialFocus
                   />
@@ -230,9 +345,9 @@ export function LogisticsForm() {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="Paga Cliente">Paga Cliente</SelectItem>
-                  <SelectItem value="A medias">A medias</SelectItem>
-                  <SelectItem value="Pagamos nosotros">Pagamos nosotros</SelectItem>
+                  <SelectItem value="CLIENT">Cliente</SelectItem>
+                  <SelectItem value="SHARED">Compartido</SelectItem>
+                  <SelectItem value="SYSTEM">Sistema</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -267,11 +382,12 @@ export function LogisticsForm() {
 
         <div className="flex items-center gap-4">
           <Button type="button" onClick={calculatePrice} disabled={!isPriceButtonEnabled}>
-            Calcular Precio
+            {isCalculating ? "Calculando..." : "Calcular Precio"}
           </Button>
+          {isCalculating && <Spinner />}
           <div className="flex items-center">
             <span className="mr-2">ARS$</span>
-            <Input value={price || ""} readOnly placeholder="Precio calculado" className="w-1/2" />
+            <Input value={price || ""} readOnly placeholder="Precio calculado" className="w-2/3" />
           </div>
         </div>
 
@@ -289,10 +405,9 @@ export function LogisticsForm() {
           )}
         />
         <div className="flex gap-4 flex-row justify-end">
-          <Button type="button" onClick={downloadLogisticsTxt} disabled={!price}>
-            Imprimir Logística
+          <Button type="button" onClick={linkLogisticsToTransaction} disabled={!isLinkButtonEnabled}>
+            Vincular Logística a Transacción
           </Button>
-          <Button type="submit" variant="outline">Finalizar</Button>
         </div>
       </form>
     </Form>

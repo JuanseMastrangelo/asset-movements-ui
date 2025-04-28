@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { api, transactionsService, denominationsService } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -97,7 +97,7 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
     return (
       <div className="flex justify-center items-center h-full">
         <div className="px-4 py-2 rounded-md w-1/2 text-center">
-          No se permite en este tipo de transacciones, cambia de activo para continuar ó dirigete a conciliaciones para realizar la carga de valores <Link to="/conciliations" className="text-blue-500 hover:text-blue-700">aquí</Link>.
+          No se permite en este tipo de transacciones, cambia de activo para continuar ó dirigete a conciliaciones para realizar la carga de valores <a href="/conciliations" className="text-blue-500 hover:text-blue-700">aquí</a>.
         </div>
       </div>
     );

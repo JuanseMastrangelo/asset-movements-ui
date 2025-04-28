@@ -4,7 +4,7 @@ import { TransactionResponse, TransactionSearchResponse } from '@/models/transac
 import { TransactionRuleResponse } from '@/models/transactionRule';
 import { toast } from 'sonner';
 import { CreateUserDto, User } from '@/models/user';
-import { CreateLogisticConfigDto, LogisticConfig, LogisticConfigResponse } from '@/models/logistic';
+import { CreateLogisticConfigDto, LogisticConfig, LogisticConfigResponse, LogisticResponse } from '@/models/logistic';
 import { CalculateLogisticDto } from '@/models/logistic';
 import { Denomination } from '@/models/denomination';
 import { AuditResponse } from '@/models/audit';
@@ -371,7 +371,27 @@ export const transactionsService = {
       console.error('Error conciliating transactions:', error);
       throw error;
     }
-  }
+  },
+  createLogistic: async (logisticData: {
+    transactionId: string;
+    originAddress: string;
+    destinationAddress: string;
+    deliveryDate: string;
+    note: string;
+    paymentResponsibility: string;
+    status: string;
+  }) => {
+    const { data } = await api.post('/logistics', logisticData);
+    return data;
+  },
+  getLogistic: async (transactionId: string): Promise<LogisticResponse> => {
+    const { data } = await api.get<LogisticResponse>(`/logistics/transaction/${transactionId}`);
+    return data;
+  },
+  updateLogisticStatus: async (logisticId: string, status: string) => {
+    const { data } = await api.patch(`/logistics/${logisticId}`, { status });
+    return data;
+  },
 }; 
 
 export const auditService = {
@@ -417,7 +437,12 @@ export const usersService = {
   disable: async (id: string) => {
     const { data } = await api.patch<User>(`/users/${id}/disable`);
     return data;
-  }
+  },
+
+  getById: async (id: string) => {
+    const { data } = await api.get<User>(`/users/${id}`);
+    return data;
+  },
 }; 
 
 // Transaction Rules Services
@@ -471,5 +496,5 @@ export const logisticsService = {
   },
   deleteLogisticConfig: async (id: string) => {
     await api.delete(`/logistics/settings/${id}`);
-  },
+  }
 }; 
