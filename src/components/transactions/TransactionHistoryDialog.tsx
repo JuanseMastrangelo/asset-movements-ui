@@ -56,7 +56,9 @@ export function TransactionHistoryDialog({ clientId, clientName, isOpen, onClose
     });
   };
 
-  const parentTransactions = clientTransactions?.data.filter(transaction => !transaction.parentTransactionId);
+  const parentTransactions = clientTransactions?.data
+    .filter(transaction => !transaction.parentTransactionId)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   const childTransactionsMap = clientTransactions?.data.reduce((acc, transaction) => {
     if (transaction.parentTransactionId) {
       if (!acc[transaction.parentTransactionId]) {
@@ -73,7 +75,7 @@ export function TransactionHistoryDialog({ clientId, clientName, isOpen, onClose
         <DialogHeader>
           <DialogTitle>Historial de transacciones de {clientName}</DialogTitle>
         </DialogHeader>
-        <div className="border rounded-lg mt-6">
+        <div className="border rounded-lg mt-6 overflow-y-auto max-h-[60vh]">
           <Table>
             <TableHeader>
               <TableRow>

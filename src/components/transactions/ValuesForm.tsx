@@ -442,6 +442,7 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
                 .flatMap((transaction) => transaction.details.map((detail) => ({
                   ...detail,
                   date: transaction.date,
+                  notes: transaction.notes
                 })))
                 .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
                 .map((detail, index) => (
@@ -493,23 +494,6 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
           onClick={() => handleSubmit(false)}
         >
           Guardar Carga de valores
-        </Button>
-        <Button
-          type="button"
-          disabled={
-            isSubmitting ||
-            (
-              !allRowsComplete(ingressRows) &&
-              !allRowsComplete(egressRows)
-            ) ||
-            (
-              (pendingIngress - calculateTotal(ingressRows) < 0) ||
-              (pendingEgress - calculateTotal(egressRows) < 0)
-            )
-          }
-          onClick={() => handleSubmit(true)}
-        >
-          Guardar Carga de valores con logística
         </Button>
       </div>
       </>

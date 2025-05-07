@@ -10,6 +10,8 @@ import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
 import { Textarea } from '../components/ui/textarea';
 import { toast } from 'sonner';
+import { HandshakeIcon } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export function Conciliations() {
   const queryClient = useQueryClient();
@@ -126,9 +128,9 @@ export function Conciliations() {
           return {
             clientId: transaction.client.id,
             assetId: transaction.details[0].asset.id, // Asumimos que cada transacción tiene al menos un detalle
-            movementType: isIncome ? 'INCOME' : 'EXPENSE',
+            movementType: isIncome ?'EXPENSE' : 'INCOME',
             amount: amount,
-            notes: isIncome ? 'Cable traer del exterior' : `Cable llevar para ${transaction.client.name}`
+            notes: note ? note : isIncome ? 'Cable traer del exterior' : `Cable llevar para ${transaction.client.name}`
           };
         }
         return null;
@@ -167,9 +169,7 @@ export function Conciliations() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold text-center">Conciliaciones</h1>
-      </div>
+      <h1 className="text-2xl font-bold">Conciliar Operaciones</h1>
       <div className="flex justify-between gap-5">
         <div className="border rounded-lg w-full">
           <h2 className="text-xl font-semibold px-4 pt-4">Cable Traer</h2>
@@ -181,6 +181,7 @@ export function Conciliations() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Cliente</TableHead>
+                        <TableHead className='text-center'>Transacción</TableHead>
                         <TableHead>Monto</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -193,22 +194,27 @@ export function Conciliations() {
                         </TableRow>
                       ) : (
                         conciliationsData?.data.transactions
-                          .filter((transaction: Conciliation) => transaction.details.some((detail: TransactionDetail) => detail.asset.name === 'Cable traer') && transaction.state !== 'COMPLETED')
+                          .filter((transaction: Conciliation) => transaction.details.some((detail: TransactionDetail) => detail.asset.name === 'Cable traer' && detail.movementType === 'INCOME') && transaction.state !== 'COMPLETED')
                           .map((transaction: Conciliation, index: number) => (
                             <TableRow key={index}>
                               <TableCell>
                                 <div className="flex items-center">
                                   <Checkbox
-                                    id={`checkbox-${index}`}
+                                    id={`checkbox-Cable Traer-${index}`}
                                     onCheckedChange={() => handleCheckboxChange(transaction)}
                                     disabled={disabledSection === 'Cable Traer'}
                                   />
-                                  <label htmlFor={`checkbox-${index}`} className="ml-2">
+                                  <label htmlFor={`checkbox-Cable Traer-${index}`} className="ml-2">
                                     {transaction.client.name}
                                   </label>
                                 </div>
                               </TableCell>
-                              <TableCell>${transaction.details.reduce((total: number, detail: TransactionDetail) => total + detail.amount, 0)}</TableCell>
+                              <TableCell className='text-center'>
+                                <Link target='_blank' to={`/transactions/${transaction.details[0].transactionId}`} className="text-blue-500" title="Ver transacción padre">
+                                  Link
+                                </Link>
+                              </TableCell>
+                              <TableCell>${transaction.details.filter((detail: TransactionDetail) => detail.asset.name === 'Cable traer' && detail.movementType === 'INCOME').reduce((total: number, detail: TransactionDetail) => total + detail.amount, 0)}</TableCell>
                             </TableRow>
                           ))
                       )}
@@ -246,11 +252,11 @@ export function Conciliations() {
                               <TableCell>
                                 <div className="flex items-center">
                                   <Checkbox
-                                    id={`checkbox-${index}`}
+                                    id={`checkbox-Cuenta Madre-${index}`}
                                     onCheckedChange={() => handleCheckboxChange(asset)}
                                     disabled={disabledSection === 'Cuenta Madre'}
                                   />
-                                  <label htmlFor={`checkbox-${index}`} className="ml-2">
+                                  <label htmlFor={`checkbox-Cuenta Madre-${index}`} className="ml-2">
                                     {asset.name}
                                   </label>
                                 </div>
@@ -276,6 +282,7 @@ export function Conciliations() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Cliente</TableHead>
+                        <TableHead className='text-center'>Transacción</TableHead>
                         <TableHead>Monto</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -288,22 +295,27 @@ export function Conciliations() {
                         </TableRow>
                       ) : (
                         conciliationsData?.data.transactions
-                          .filter((transaction: Conciliation) => transaction.details.some((detail: TransactionDetail) => detail.asset.name === 'Cable llevar') && transaction.state !== 'COMPLETED')
+                          .filter((transaction: Conciliation) => transaction.details.some((detail: TransactionDetail) => detail.asset.name === 'Cable llevar' && detail.movementType === 'EXPENSE') && transaction.state !== 'COMPLETED')
                           .map((transaction: Conciliation, index: number) => (
                             <TableRow key={index}>
                               <TableCell>
                                 <div className="flex items-center">
                                   <Checkbox
-                                    id={`checkbox-${index}`}
+                                    id={`checkbox-Cable Llevar-${index}`}
                                     onCheckedChange={() => handleCheckboxChange(transaction)}
                                     disabled={disabledSection === 'Cable Llevar'}
                                   />
-                                  <label htmlFor={`checkbox-${index}`} className="ml-2">
+                                  <label htmlFor={`checkbox-Cable Llevar-${index}`} className="ml-2">
                                     {transaction.client.name}
                                   </label>
                                 </div>
                               </TableCell>
-                              <TableCell>${transaction.details.reduce((total: number, detail: TransactionDetail) => total + detail.amount, 0)}</TableCell>
+                              <TableCell className='text-center'>
+                                <Link target='_blank' to={`/transactions/${transaction.details[0].transactionId}`} className="text-blue-500" title="Ver transacción padre">
+                                  Link
+                                </Link>
+                              </TableCell>
+                              <TableCell>${transaction.details.filter((detail: TransactionDetail) => detail.asset.name === 'Cable llevar' && detail.movementType === 'EXPENSE').reduce((total: number, detail: TransactionDetail) => total + detail.amount, 0)}</TableCell>
                             </TableRow>
                           ))
                       )}
@@ -317,26 +329,27 @@ export function Conciliations() {
       </div>
       <div className="mt-4 flex justify-center">
         <Button
-          className="px-4 py-2 bg-black text-white rounded"
           onClick={() => setIsDialogOpen(true)}
           disabled={!canConciliate()}
+          variant="default"
         >
-          Conciliar
+          <HandshakeIcon className="w-4 h-4 mr-2" />
+          Conciliar Transacciones
         </Button>
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent style={{ width: '80%', maxWidth: '80%' }}>
           <DialogHeader>
-            <DialogTitle>Conciliar Transacciones</DialogTitle>
+            <DialogTitle>Conciliar Transacciones - Carga de valores</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {['Cable Traer', 'Cuentas Madre', 'Cable Llevar'].map((section) => {
               const transactionsInSection = selectedTransactions.filter(transaction => {
                 if ('details' in transaction) {
                   return transaction.details.some(detail => {
-                    if (section === 'Cable Traer') return detail.asset.name === 'Cable traer';
-                    if (section === 'Cable Llevar') return detail.asset.name === 'Cable llevar';
+                    if (section === 'Cable Traer') return detail.asset.name === 'Cable traer' && detail.movementType === 'INCOME';
+                    if (section === 'Cable Llevar') return detail.asset.name === 'Cable llevar' && detail.movementType === 'EXPENSE';
                     return false;
                   });
                 } else {
@@ -344,47 +357,52 @@ export function Conciliations() {
                 }
               });
 
-              if (transactionsInSection.length === 0) return null;
-
-              return (
-                <div key={section} className="space-y-2">
-                  <h3 className="font-semibold">{section}</h3>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Cliente</TableHead>
-                        <TableHead>Monto</TableHead>
-                        <TableHead>Ingresar Monto</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {transactionsInSection.map((transaction, index) => {
-                        const transactionId = 'details' in transaction ? transaction.id : transaction.name;
-                        return (
-                          <TableRow key={index}>
-                            <TableCell className='w-1/2'>{'details' in transaction ? transaction.client.name : transaction.name}</TableCell>
-                            <TableCell className='w-3/12'>${'details' in transaction ? transaction.details.reduce((total, detail) => total + detail.amount, 0) : 0}</TableCell>
-                            <TableCell>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                max={'details' in transaction ? transaction.details.reduce((total, detail) => total + detail.amount, 0) : 0}
-                                placeholder="Monto"
-                                className="w-24"
-                                onChange={(e) => handleAmountChange(transactionId, parseFloat(e.target.value))}
-                                value={amountsInSection[transactionId] || ''}
-                              />
-                              {!isAmountValid(transactionId, amountsInSection[transactionId] || 0) && (
-                                <span className="text-red-500">Monto inválido</span>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              );
+              if (transactionsInSection.length > 0) {
+                return (
+                  <div key={section} className="space-y-2">
+                    <h3 className="font-semibold">{section}</h3>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Cliente</TableHead>
+                          <TableHead>Monto</TableHead>
+                          <TableHead>Ingresar Monto</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {
+                        transactionsInSection.map((transaction, index) => {
+                          const transactionId = 'details' in transaction ? transaction.id : transaction.name;
+                          const amount = section === 'Cable Traer' ? 'details' in transaction ? transaction.details.filter((detail: TransactionDetail) => detail.asset.name === 'Cable traer' && detail.movementType === 'INCOME').reduce((total: number, detail: TransactionDetail) => total + detail.amount, 0) : 0 :
+                          section === 'Cable Llevar' ? 'details' in transaction ? transaction.details.filter((detail: TransactionDetail) => detail.asset.name === 'Cable llevar' && detail.movementType === 'EXPENSE').reduce((total: number, detail: TransactionDetail) => total + detail.amount, 0) : 0 :
+                          0;
+                          return (
+                            <TableRow key={index}>
+                              <TableCell className='w-1/2'>{'details' in transaction ? transaction.client.name : transaction.name}</TableCell>
+                              <TableCell className='w-3/12'>${amount}</TableCell>
+                              <TableCell>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  max={amount}
+                                  placeholder="Monto"
+                                  className="w-24"
+                                  onChange={(e) => handleAmountChange(transactionId, parseFloat(e.target.value))}
+                                  value={amountsInSection[transactionId] || ''}
+                                />
+                                {!isAmountValid(transactionId, amountsInSection[transactionId] || 0) && (
+                                  <span className="text-red-500">Monto inválido</span>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                );
+              }
+              return null;
             })}
           </div>
           <div className="mt-4">

@@ -1,4 +1,3 @@
-
 import { type FC, useState, useEffect, useRef } from 'react'
 import { Button } from './button'
 import { Popover, PopoverContent, PopoverTrigger } from './popover'
@@ -333,9 +332,9 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
       }}
     >
       <PopoverTrigger asChild>
-        <Button size={'lg'} variant="outline">
-          <div className="text-right">
-            <div className="py-1">
+        <Button size={'lg'} variant="outline" className='pl-4'>
+          <div>
+            <div className="py-1 font-normal">
               <div>{`${formatDate(range.from, locale)}${
                 range.to != null ? ' - ' + formatDate(range.to, locale) : ''
               }`}</div>
@@ -490,7 +489,12 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
                   mode="range"
                   onSelect={(value: { from?: Date, to?: Date } | undefined) => {
                     if (value?.from != null) {
-                      setRange({ from: value.from, to: value?.to })
+                      if (value.to == null) {
+                        // Si solo se selecciona un día, establecerlo como desde y hasta
+                        setRange({ from: value.from, to: value.from });
+                      } else {
+                        setRange({ from: value.from, to: value.to });
+                      }
                     }
                   }}
                   selected={range}
@@ -502,6 +506,7 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
                       )
                     )
                   }
+                  className="calendar-range-picker"
                 />
               </div>
             </div>

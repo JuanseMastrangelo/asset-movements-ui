@@ -1,7 +1,6 @@
 import * as React from "react"
 import { useAuth } from "@/contexts/AuthContext"
 
-import { SearchForm } from "@/components/search-form"
 import {
   Sidebar,
   SidebarContent,
@@ -11,6 +10,7 @@ import {
 } from "@/components/ui/sidebar"
 import { NavMain } from "./nav-main"
 import { NavUser } from "./nav-user"
+import Logo from "/favicon.ico";
 
 // This is sample data.
 export const data = {
@@ -25,7 +25,7 @@ export const data = {
           url: "/",
         },
         {
-          title: "Transacciones",
+          title: "Crear transaccion",
           url: "/transactions",
         },
         {
@@ -93,11 +93,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar {...props}>
       <SidebarHeader>
-        <div className="flex flex-col gap-0.5 leading-none py-2 px-3">
-          <span className="font-semibold">Assets Manager</span>
-          <span className="">v1.0</span>
+        <div className="flex items-center gap-1 px-2">
+          <div className="flex justify-center items-center w-10 h-10 bg-gray-500 rounded-sm">
+          <img src={Logo} alt="logo" width={24} height={24} />
+          </div>
+          <div className="flex flex-col gap-0.5 leading-none py-2 px-3">
+            <span className="font-semibold">Assets Manager</span>
+            <span className="">v1.0</span>
+          </div>
         </div>
-        <SearchForm />
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />

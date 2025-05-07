@@ -16,7 +16,7 @@ import { transactionsService, clientService } from "@/services/api";
 import { TransactionSearchResponse, Transaction, TransactionDetail } from "@/models/transaction";
 import { Client } from "@/models/client";
 import { DateRangePicker } from "@/components/ui/DatePickerWithRange";
-import { Eye, Link2 } from "lucide-react";
+import { Eye, FileText, Link2 } from "lucide-react";
 import { PaginationControl } from "@/components/ui/PaginationControl";
 
 
@@ -66,7 +66,7 @@ export function TransactionHistory() {
   };
 
   // Search de clientes
-  const { data: clientData } = useQuery<{ data: Client[] }>({
+  const { data: clientData, isFetching: isFetchingClientData } = useQuery<{ data: Client[] }>({
     queryKey: ["clients", clientSearch],
     queryFn: () => clientService.searchClients(clientSearch),
     enabled: !!clientSearch,
@@ -173,7 +173,7 @@ export function TransactionHistory() {
           onValueChange={handleStateChange}
           value={state}
         >
-          <SelectTrigger className="w-[180px]">{state || 'Estado'}</SelectTrigger>
+          <SelectTrigger className="w-[180px] py-[1.3125rem]">{state || 'Estado'}</SelectTrigger>
           <SelectContent>
             <SelectItem value="CLEAR">Limpiar selección</SelectItem>
             <SelectItem value="PENDING">Pendiente</SelectItem>
@@ -184,29 +184,46 @@ export function TransactionHistory() {
         </Select>
 
         <div ref={autocompleteRef} className="relative w-full sm:w-[300px]">
-          <Input
-            type="text"
-            value={clientSearch}
-            onChange={(e) => {
-              const newClientSearch = e.target.value;
-              if (clientSearch !== newClientSearch) {
-                setClientSearch(newClientSearch);
-              }
-            }}
-            onFocus={() => setAutocompleteOpen(true)}
-            placeholder="Filtrar por cliente..."
-          />
-          {autocompleteOpen && (
+          <div className="relative">
+            <Input
+              type="text"
+              value={clientSearch}
+              onChange={(e) => {
+                const newClientSearch = e.target.value;
+                if (clientSearch !== newClientSearch) {
+                  setClientSearch(newClientSearch);
+                }
+              }}
+              className="py-[1.3125rem] pr-10"
+              onFocus={() => setAutocompleteOpen(true)}
+              placeholder="Filtrar por cliente..."
+            />
+            <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 2a6 6 0 100 12 6 6 0 000-12zM8 10a2 2 0 114 0 2 2 0 01-4 0zm8 8a8 8 0 10-16 0h16z" clipRule="evenodd" />
+              </svg>
+            </div>
+          </div>
+          {autocompleteOpen && clientSearch.trim() !== '' && (
             <ul className="absolute bg-white border rounded-md mt-1 w-full z-10">
-              {clientData?.data.map((client) => (
-                <li
-                  key={client.id}
-                  onClick={() => handleClientSelect(client)}
-                  className="cursor-pointer hover:bg-gray-100 p-2"
-                >
-                  {client.name}
-                </li>
-              ))}
+              {
+                isFetchingClientData ? (
+                  <div className="flex my-4 justify-center items-center">
+                    <Spinner size="sm" />
+                  </div>
+                ) :
+                  !clientData || clientData?.data.length === 0 ? (
+                    <div className="flex my-4 justify-center items-center text-gray-500">No se encontraron resultados</div>
+                  ) :
+                  clientData?.data.map((client) => (
+                  <li
+                    key={client.id}
+                    onClick={() => handleClientSelect(client)}
+                    className="cursor-pointer hover:bg-gray-100 p-2"
+                  >
+                    {client.name}
+                  </li>
+                  ))}
             </ul>
           )}
         </div>
@@ -214,7 +231,7 @@ export function TransactionHistory() {
 
       <div className="flex flex-row gap-3">
         {clientId && (
-            <Badge variant="default" className="flex items-center">
+            <Badge variant="default" className="flex items-center py-2 px-4">
               {clientSearch}
               <button onClick={clearClientSelection} className="ml-2">
                 &times;
@@ -240,6 +257,8 @@ export function TransactionHistory() {
               <TableHead>Fecha y Hora</TableHead>
               <TableHead>Cliente</TableHead>
               <TableHead>Estado</TableHead>
+              <TableHead>Ingreso</TableHead>
+              <TableHead>Egreso</TableHead>
               <TableHead>Nota</TableHead>
               <TableHead>Acciones</TableHead>
             </TableRow>
@@ -249,7 +268,7 @@ export function TransactionHistory() {
 
               return (
                 <TableRow key={transaction.id}>
-                  <TableCell className="w-44">
+                  <TableCell className="w-40">
                     {transaction.parentTransactionId ? (
                       <div className="flex gap-2">
                         <button
@@ -271,8 +290,10 @@ export function TransactionHistory() {
                       {transaction.state === "PENDING" ? "Pendiente" : transaction.state === "COMPLETED" ? "Completado" : transaction.state === "CANCELLED" ? "Cancelado" : "Cuenta Corriente"}
                     </Badge>
                   </span></TableCell>
-                  <TableCell title={transaction.notes}>
-                    {transaction.notes.length > 30 ? `${transaction.notes.slice(0, 30)}...` : transaction.notes}
+                  <TableCell>{transaction.details.find(detail => detail.movementType === 'INCOME')?.asset.name || '-'}</TableCell>
+                  <TableCell>{transaction.details.find(detail => detail.movementType === 'EXPENSE')?.asset.name || '-'}</TableCell>
+                  <TableCell>
+                    <div className="text-center" title={transaction.notes}><FileText className="w-4 h-4" /></div>
                   </TableCell>
                   <TableCell>
                     <Button onClick={() => handleViewTransaction(transaction.id)} variant="outline" size="icon">
