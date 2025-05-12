@@ -12,6 +12,6 @@ export default defineConfig({
   },
   base: '/',
   preview: {
-    allowedHosts: ['s4g08o8sw808cwgwc4c8k8cs.147.93.13.112.sslip.io'],
+    allowedHosts: ['s4g08o8sw808cwgwc4c8k8cs.147.93.13.112.sslip.io', 'lucas.programadoresargentina.com'],
   },
 });
