@@ -32,8 +32,8 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [note, setNote] = useState<string>("");
 
-  const CABLE_TRAER_ASSET_ID = import.meta.env.VITE_CABLE_TRAER_ASSET_ID;
-  const CABLE_LLEVAR_ASSET_ID = import.meta.env.VITE_CABLE_LLEVAR_ASSET_ID;
+  // const CABLE_TRAER_ASSET_ID = import.meta.env.VITE_CABLE_TRAER_ASSET_ID;
+  // const CABLE_LLEVAR_ASSET_ID = import.meta.env.VITE_CABLE_LLEVAR_ASSET_ID;
 
   const { data: transactionDetails, isLoading: isLoadingTransaction, error: transactionError, refetch: refetchTransactionDetails } = useQuery({
     queryKey: ["transaction", params.id],
@@ -94,8 +94,8 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
 
   const isCompleted = transactionDetails?.state === "COMPLETED";
   
-  const hasCableTraer = transactionDetails?.details.some(detail => detail.asset.id === CABLE_TRAER_ASSET_ID);
-  const hasCableLlevar = transactionDetails?.details.some(detail => detail.asset.id === CABLE_LLEVAR_ASSET_ID);
+  // const hasCableTraer = transactionDetails?.details.some(detail => detail.asset.id === CABLE_TRAER_ASSET_ID);
+  // const hasCableLlevar = transactionDetails?.details.some(detail => detail.asset.id === CABLE_LLEVAR_ASSET_ID);
 
 
   // Calculate total amount for a set of rows

@@ -13,16 +13,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { FileUpload } from "@/components/ui/file-upload";
 import { toast } from "sonner";
 import { Transaction, TransactionResponse } from "@/models/transaction";
 import { useNavigate, useParams } from "react-router-dom";
@@ -75,7 +67,7 @@ type FormData = z.infer<typeof operationSchema>;
 
 export function OperationForm({ onComplete, clientId }: OperationFormProps) {
   const { id } = useParams<{ id: string }>();
-  const [files, setFiles] = useState<File[]>([]);
+  // const [files, setFiles] = useState<File[]>([]);
   const [percentageChange, setPercentageChange] = useState<string>("");
   const [filteredEgressAssets, setFilteredEgressAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -180,14 +172,14 @@ export function OperationForm({ onComplete, clientId }: OperationFormProps) {
     }
   };
 
-  const formatAmount = (value: number) => {
-    if (value === 0) return "";
-    const [integerPart, decimalPart] = value.toString().split(".");
-    if (decimalPart) {
-      return `${integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".")},${decimalPart}`;
-    }
-    return integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  };
+  // const formatAmount = (value: number) => {
+  //   if (value === 0) return "";
+  //   const [integerPart, decimalPart] = value.toString().split(".");
+  //   if (decimalPart) {
+  //     return `${integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".")},${decimalPart}`;
+  //   }
+  //   return integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  // };
 
   const parseAmount = (value: string) => {
     const cleanValue = value.replace(/\./g, "").replace(",", ".");
@@ -242,18 +234,18 @@ export function OperationForm({ onComplete, clientId }: OperationFormProps) {
   
   
       // Si hay archivos, los subimos en una segunda llamada
-      if (files.length > 0) {
-        const formData = new FormData();
-        files.forEach((file) => {
-          formData.append("files", file);
-        });
+      // if (files.length > 0) {
+      //   const formData = new FormData();
+      //   files.forEach((file) => {
+      //     formData.append("files", file);
+      //   });
   
-        await api.post(`transactions/${response.data.data.id}/attachments`, formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        });
-      }
+      //   await api.post(`transactions/${response.data.data.id}/attachments`, formData, {
+      //     headers: {
+      //       "Content-Type": "multipart/form-data",
+      //     },
+      //   });
+      // }
     } catch (error) {
       toast.error("No se pudo crear/actualizar la transacción");
     }
@@ -285,25 +277,25 @@ export function OperationForm({ onComplete, clientId }: OperationFormProps) {
   };
 
   // Verificar si al menos un activo seleccionado tiene isPercentage como true
-  const showPercentageField = () => {
-    const selectedIngressAsset = assets?.data.find(asset => asset.id === form.watch("ingressAssetId"));
-    const selectedEgressAsset = assets?.data.find(asset => asset.id === form.watch("egressAssetId"));
-    return selectedIngressAsset?.isPercentage || selectedEgressAsset?.isPercentage;
-  };
+  // const showPercentageField = () => {
+  //   const selectedIngressAsset = assets?.data.find(asset => asset.id === form.watch("ingressAssetId"));
+  //   const selectedEgressAsset = assets?.data.find(asset => asset.id === form.watch("egressAssetId"));
+  //   return selectedIngressAsset?.isPercentage || selectedEgressAsset?.isPercentage;
+  // };
 
   // Obtener el nombre del activo de egreso seleccionado
   const selectedEgressAssetName = assets?.data.find(asset => asset.id === form.watch("egressAssetId"))?.name || "";
   const selectedIngressAssetName = assets?.data.find(asset => asset.id === form.watch("ingressAssetId"))?.name || "";
 
   // Calcular la cotización entre el activo de ingreso y el activo de egreso
-  const calculateExchangeRate = () => {
-    const ingressAmount = form.watch("ingressAmount");
-    const egressAmount = form.watch("egressAmount");
-    if (ingressAmount && egressAmount) {
-      return (egressAmount / ingressAmount).toFixed(2);
-    }
-    return "0.00";
-  };
+  // const calculateExchangeRate = () => {
+  //   const ingressAmount = form.watch("ingressAmount");
+  //   const egressAmount = form.watch("egressAmount");
+  //   if (ingressAmount && egressAmount) {
+  //     return (egressAmount / ingressAmount).toFixed(2);
+  //   }
+  //   return "0.00";
+  // };
 
   if (isLoadingAssets || isLoadingRules || loading) {
     return <Spinner />;
