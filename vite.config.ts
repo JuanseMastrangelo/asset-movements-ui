@@ -12,6 +12,12 @@ export default defineConfig({
   },
   base: '/',
   preview: {
-    allowedHosts: ['s4g08o8sw808cwgwc4c8k8cs.147.93.13.112.sslip.io', 'lucas.programadoresargentina.com', 'aw0o04ocsgko0w4osgo0040k.147.93.13.112.sslip.io' , 'lucas-sandbox.programadoresargentina.com'],
+    allowedHosts: [
+      's4g08o8sw808cwgwc4c8k8cs.147.93.13.112.sslip.io',
+      'lucas.programadoresargentina.com',
+      'aw0o04ocsgko0w4osgo0040k.147.93.13.112.sslip.io' ,
+      'lucas-sandbox.programadoresargentina.com',
+      'lucasui.app.programadoresargentina.com'
+    ],
   },
 });

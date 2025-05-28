@@ -144,11 +144,28 @@ export function OperationForm({ onComplete, clientId }: OperationFormProps) {
     loadTransaction();
   }, [id, assets]);
 
+  // Utilidad para mostrar cotización de forma legible
+  function formatRate(value: number | string) {
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    if (isNaN(num)) return '';
+    if (Number.isInteger(num)) return num.toString();
+    return num.toFixed(6).replace(/\.0+$/, '').replace(/(\.[0-9]*[1-9])0+$/, '$1');
+  }
+
   useEffect(() => {
-    if (form.watch("ingressAmount") && form.watch("egressAmount")) {
-      const percentage = (form.watch("egressAmount") / form.watch("ingressAmount") * 100);
-      // Si el número es entero, no mostrar decimales
+    const ingressAmount = form.watch("ingressAmount");
+    const egressAmount = form.watch("egressAmount");
+    // Calcular porcentaje
+    if (ingressAmount && egressAmount) {
+      const percentage = (egressAmount / ingressAmount) * 100;
       setPercentageChange(Number.isInteger(percentage) ? percentage.toString() : percentage.toFixed(2));
+      // Calcular cotización directa e inversa
+      setExchangeRate(formatRate(egressAmount / ingressAmount));
+      setReverseExchangeRate(formatRate(ingressAmount / egressAmount));
+    } else {
+      setPercentageChange("");
+      setExchangeRate("1");
+      setReverseExchangeRate("1");
     }
   }, [form.watch("ingressAmount"), form.watch("egressAmount")]);
 
@@ -399,42 +416,16 @@ export function OperationForm({ onComplete, clientId }: OperationFormProps) {
             <div className="flex flex-col justify-center mt-2 col-span-2 gap-2">
               <div className="flex flex-row items-center justify-center gap-2">
                 <span>1 {selectedEgressAssetName} =</span>
-                <Input
-                  type="number"
-                  value={exchangeRate}
-                  min="0"
-                  step="0.0001"
-                  className="w-24 text-center"
-                  onChange={(e) => {
-                    setExchangeRate(e.target.value);
-                    // Actualiza el egreso en base a la cotización directa
-                    const ingressAmount = form.watch('ingressAmount');
-                    const newEgress = ingressAmount / parseFloat(e.target.value || '1');
-                    form.setValue('egressAmount', isNaN(newEgress) ? 0 : newEgress);
-                    setReverseExchangeRate((parseFloat(e.target.value || '1') !== 0) ? (1 / parseFloat(e.target.value || '1')).toFixed(6) : "0");
-                  }}
-                  disabled={isReadonly}
-                />
+                <span className="w-24 text-center font-mono bg-muted rounded px-2 py-1 select-text">
+                  {exchangeRate}
+                </span>
                 <span>{selectedIngressAssetName}</span>
               </div>
               <div className="flex flex-row items-center justify-center gap-2">
                 <span>1 {selectedIngressAssetName} =</span>
-                <Input
-                  type="number"
-                  value={reverseExchangeRate}
-                  min="0"
-                  step="0.0001"
-                  className="w-24 text-center"
-                  onChange={(e) => {
-                    setReverseExchangeRate(e.target.value);
-                    // Actualiza el egreso en base a la cotización inversa
-                    const ingressAmount = form.watch('ingressAmount');
-                    const newEgress = ingressAmount * parseFloat(e.target.value || '1');
-                    form.setValue('egressAmount', isNaN(newEgress) ? 0 : newEgress);
-                    setExchangeRate((parseFloat(e.target.value || '1') !== 0) ? (1 / parseFloat(e.target.value || '1')).toFixed(6) : "0");
-                  }}
-                  disabled={isReadonly}
-                />
+                <span className="w-24 text-center font-mono bg-muted rounded px-2 py-1 select-text">
+                  {reverseExchangeRate}
+                </span>
                 <span>{selectedEgressAssetName}</span>
               </div>
             </div>
@@ -457,9 +448,9 @@ export function OperationForm({ onComplete, clientId }: OperationFormProps) {
 
         <div className="flex justify-between">
           <div className="space-x-2">
-            <Button type="button" variant="outline" onClick={downloadPdfPreview} disabled={isReadonly}>
+            {/* <Button type="button" variant="outline" onClick={downloadPdfPreview} disabled={isReadonly}>
               Vista Previa PDF
-            </Button>
+            </Button> */}
           </div>
           <Button type="submit" onClick={(e) => { if (isReadonly) { e.preventDefault(); onComplete({} as Transaction); } }}>
             {isReadonly ? "Siguiente" : "Guardar Operación"}

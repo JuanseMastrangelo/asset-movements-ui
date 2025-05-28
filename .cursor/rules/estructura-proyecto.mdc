@@ -1,0 +1,41 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Guía de Estructura del Proyecto
+
+La aplicación está estructurada principalmente en la carpeta [`src`](mdc:src), que contiene los siguientes directorios y archivos clave:
+
+- [`main.tsx`](mdc:src/main.tsx): Punto de entrada de la aplicación. Renderiza el componente principal `App` y envuelve la app con el proveedor de React Query.
+- [`App.tsx`](mdc:src/App.tsx): Componente raíz que configura los proveedores globales (tema, autenticación, notificaciones) y la navegación principal.
+- [`routes.tsx`](mdc:src/routes.tsx): Define las rutas públicas y protegidas de la aplicación usando React Router.
+
+## Carpetas principales
+
+- [`components/`](mdc:src/components): Componentes reutilizables, layouts y navegación (ej: barra lateral, layout principal, protección de rutas).
+- [`pages/`](mdc:src/pages): Vistas o páginas principales de la aplicación (ej: Home, Assets, Clients, etc.). Cada archivo representa una pantalla.
+- [`models/`](mdc:src/models): Definición de modelos de datos, interfaces y tipos TypeScript. El archivo [`index.ts`](mdc:src/models/index.ts) reexporta los modelos principales.
+- [`services/`](mdc:src/services): Lógica de acceso a APIs y servicios de negocio. El archivo [`api.ts`](mdc:src/services/api.ts) centraliza los endpoints y servicios.
+- [`contexts/`](mdc:src/contexts): Contextos globales de React para autenticación y tema.
+- [`styles/`](mdc:src/styles): Estilos globales, incluyendo [`globals.css`](mdc:src/styles/globals.css) con la configuración de Tailwind y variables de tema.
+
+## Navegación y Layout
+
+- La barra lateral principal se define en [`app-sidebar.tsx`](mdc:src/components/app-sidebar.tsx) y utiliza la estructura de navegación de [`nav-main.tsx`](mdc:src/components/nav-main.tsx).
+- El layout principal de la aplicación está en [`Layout.tsx`](mdc:src/components/Layout.tsx), que incluye el header, breadcrumbs y el cambio de tema.
+- La protección de rutas se realiza con [`ProtectedRoute.tsx`](mdc:src/components/ProtectedRoute.tsx), que verifica la autenticación antes de renderizar rutas protegidas.
+
+## Servicios y Modelos
+
+- Los servicios de API están centralizados en [`api.ts`](mdc:src/services/api.ts), que incluye autenticación, gestión de activos, clientes, denominaciones, transacciones, logística y auditoría.
+- Los modelos de datos están en [`models/`](mdc:src/models), agrupando entidades como usuario, cliente, activo, transacción, etc.
+
+## Temas y estilos
+
+- El contexto de tema se gestiona en [`ThemeContext.tsx`](mdc:src/contexts/ThemeContext.tsx) y los estilos globales en [`globals.css`](mdc:src/styles/globals.css).
+
+## Referencias rápidas
+- El README contiene una descripción general y guía de instalación: [README.md](mdc:README.md)
+- La configuración de Vite y los alias de importación están en [vite.config.ts](mdc:vite.config.ts)
+

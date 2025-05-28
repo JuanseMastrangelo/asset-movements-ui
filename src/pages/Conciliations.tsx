@@ -173,11 +173,11 @@ export function Conciliations() {
       <h1 className="text-2xl font-bold">Conciliar Operaciones</h1>
       <div className="flex justify-between gap-5">
         <div className="border rounded-lg w-full">
-          <h2 className="text-xl font-semibold px-4 pt-4">Cable Traer</h2>
+          <h2 className="text-xl font-semibold px-4 pt-4 mb-3">Cable Traer</h2>
           <Table>
             <TableBody>
-              <TableRow className='hover:bg-white'>
-                <TableCell className='hover:bg-white'>
+              <TableRow>
+                <TableCell>
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -227,11 +227,11 @@ export function Conciliations() {
           </Table>
         </div>
         <div className="border rounded-lg w-full">
-          <h2 className="text-xl font-semibold px-4 pt-4">Cuentas Madre</h2>
+          <h2 className="text-xl font-semibold px-4 pt-4 mb-3">Cuentas Madre</h2>
           <Table>
             <TableBody>
-              <TableRow className='hover:bg-white'>
-                <TableCell className='hover:bg-white'>
+              <TableRow>
+                <TableCell>
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -274,11 +274,11 @@ export function Conciliations() {
           </Table>
         </div>
         <div className="border rounded-lg w-full">
-          <h2 className="text-xl font-semibold px-4 pt-4">Cable Llevar</h2>
+          <h2 className="text-xl font-semibold px-4 pt-4 mb-3">Cable Llevar</h2>
           <Table>
             <TableBody>
-              <TableRow className='hover:bg-white'>
-                <TableCell className='hover:bg-white'>
+              <TableRow>
+                <TableCell>
                   <Table>
                     <TableHeader>
                       <TableRow>
