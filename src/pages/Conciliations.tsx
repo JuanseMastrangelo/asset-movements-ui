@@ -15,6 +15,8 @@ import { Link } from 'react-router-dom';
 
 export function Conciliations() {
   const queryClient = useQueryClient();
+  const CABLE_TRAER_ASSET_ID = import.meta.env.VITE_CABLE_TRAER_ASSET_ID;
+  const CABLE_LLEVAR_ASSET_ID = import.meta.env.VITE_CABLE_LLEVAR_ASSET_ID;
 
   const { data: conciliationsData, isLoading } = useQuery<any>({
     queryKey: ['conciliations'],
@@ -41,8 +43,8 @@ export function Conciliations() {
   useEffect(() => {
     const selectedTypes = new Set(selectedTransactions.map(transaction => {
       if ('details' in transaction) {
-        return transaction.details.some(detail => detail.asset.name === 'Cable traer') ? 'Cable Traer' :
-               transaction.details.some(detail => detail.asset.name === 'Cable llevar') ? 'Cable Llevar' :
+        return transaction.details.some(detail => detail.asset.id === CABLE_TRAER_ASSET_ID) ? 'Cable Traer' :
+               transaction.details.some(detail => detail.asset.id === CABLE_LLEVAR_ASSET_ID) ? 'Cable Llevar' :
                'Cuenta Madre';
       } else {
         return 'Cuenta Madre';
@@ -86,16 +88,15 @@ export function Conciliations() {
   };
 
   const canConciliate = () => {
-        const selectedTypes = new Set(selectedTransactions.map(transaction => {
+    const selectedTypes = new Set(selectedTransactions.map(transaction => {
       if ('details' in transaction) {
-        return transaction.details.some(detail => detail.asset.name === 'Cable traer') ? 'Cable Traer' :
-               transaction.details.some(detail => detail.asset.name === 'Cable llevar') ? 'Cable Llevar' :
+        return transaction.details.some(detail => detail.asset.id === CABLE_TRAER_ASSET_ID) ? 'Cable Traer' :
+               transaction.details.some(detail => detail.asset.id === CABLE_LLEVAR_ASSET_ID) ? 'Cable Llevar' :
                'Cuenta Madre';
       } else {
         return 'Cuenta Madre'; // Asumimos que si no tiene 'details', es un 'Asset' de tipo 'Cuenta Madre'
       }
     }));
-
     return selectedTypes.size === 2;
   };
 
@@ -103,14 +104,14 @@ export function Conciliations() {
     const totalInSection1 = Object.entries(amountsInSection)
       .filter(([transactionId]) => {
         const transaction = selectedTransactions.find(t => ('details' in t ? t.id : t.name) === transactionId);
-        return transaction && 'details' in transaction && transaction.details.some(detail => detail.asset.name === 'Cable traer');
+        return transaction && 'details' in transaction && transaction.details.some(detail => detail.asset.id === CABLE_TRAER_ASSET_ID);
       })
       .reduce((acc, [, val]) => acc + val, 0);
 
     const totalInSection2 = Object.entries(amountsInSection)
       .filter(([transactionId]) => {
         const transaction = selectedTransactions.find(t => ('details' in t ? t.id : t.name) === transactionId);
-        return transaction && 'details' in transaction && transaction.details.some(detail => detail.asset.name === 'Cable llevar');
+        return transaction && 'details' in transaction && transaction.details.some(detail => detail.asset.id === CABLE_LLEVAR_ASSET_ID);
       })
       .reduce((acc, [, val]) => acc + val, 0);
 
@@ -124,7 +125,7 @@ export function Conciliations() {
       .map(([transactionId, amount]) => {
         const transaction = selectedTransactions.find(t => ('details' in t ? t.id : t.name) === transactionId);
         if (transaction && 'details' in transaction) {
-          const isIncome = transaction.details.some(detail => detail.asset.name === 'Cable traer');
+          const isIncome = transaction.details.some(detail => detail.asset.id === CABLE_TRAER_ASSET_ID);
           return {
             clientId: transaction.client.id,
             assetId: transaction.details[0].asset.id, // Asumimos que cada transacción tiene al menos un detalle
@@ -156,14 +157,14 @@ export function Conciliations() {
   const totalInSection1 = Object.entries(amountsInSection)
     .filter(([transactionId]) => {
       const transaction = selectedTransactions.find(t => ('details' in t ? t.id : t.name) === transactionId);
-      return transaction && 'details' in transaction && transaction.details.some(detail => detail.asset.name === 'Cable traer');
+      return transaction && 'details' in transaction && transaction.details.some(detail => detail.asset.id === CABLE_TRAER_ASSET_ID);
     })
     .reduce((acc, [, val]) => acc + val, 0);
 
   const totalInSection2 = Object.entries(amountsInSection)
     .filter(([transactionId]) => {
       const transaction = selectedTransactions.find(t => ('details' in t ? t.id : t.name) === transactionId);
-      return transaction && 'details' in transaction && transaction.details.some(detail => detail.asset.name === 'Cable llevar');
+      return transaction && 'details' in transaction && transaction.details.some(detail => detail.asset.id === CABLE_LLEVAR_ASSET_ID);
     })
     .reduce((acc, [, val]) => acc + val, 0);
 
@@ -194,7 +195,7 @@ export function Conciliations() {
                         </TableRow>
                       ) : (
                         conciliationsData?.data.transactions
-                          .filter((transaction: Conciliation) => transaction.details.some((detail: TransactionDetail) => detail.asset.name === 'Cable traer' && detail.movementType === 'INCOME') && transaction.state !== 'COMPLETED')
+                          .filter((transaction: Conciliation) => transaction.details.some((detail: TransactionDetail) => detail.asset.id === CABLE_TRAER_ASSET_ID && detail.movementType === 'INCOME') && transaction.state !== 'COMPLETED')
                           .map((transaction: Conciliation, index: number) => (
                             <TableRow key={index}>
                               <TableCell>
@@ -214,7 +215,7 @@ export function Conciliations() {
                                   Link
                                 </Link>
                               </TableCell>
-                              <TableCell>${transaction.details.filter((detail: TransactionDetail) => detail.asset.name === 'Cable traer' && detail.movementType === 'INCOME').reduce((total: number, detail: TransactionDetail) => total + detail.amount, 0)}</TableCell>
+                              <TableCell>${transaction.details.filter((detail: TransactionDetail) => detail.asset.id === CABLE_TRAER_ASSET_ID && detail.movementType === 'INCOME').reduce((total: number, detail: TransactionDetail) => total + detail.amount, 0)}</TableCell>
                             </TableRow>
                           ))
                       )}
@@ -295,7 +296,7 @@ export function Conciliations() {
                         </TableRow>
                       ) : (
                         conciliationsData?.data.transactions
-                          .filter((transaction: Conciliation) => transaction.details.some((detail: TransactionDetail) => detail.asset.name === 'Cable llevar' && detail.movementType === 'EXPENSE') && transaction.state !== 'COMPLETED')
+                          .filter((transaction: Conciliation) => transaction.details.some((detail: TransactionDetail) => detail.asset.id === CABLE_LLEVAR_ASSET_ID && detail.movementType === 'EXPENSE') && transaction.state !== 'COMPLETED')
                           .map((transaction: Conciliation, index: number) => (
                             <TableRow key={index}>
                               <TableCell>
@@ -315,7 +316,7 @@ export function Conciliations() {
                                   Link
                                 </Link>
                               </TableCell>
-                              <TableCell>${transaction.details.filter((detail: TransactionDetail) => detail.asset.name === 'Cable llevar' && detail.movementType === 'EXPENSE').reduce((total: number, detail: TransactionDetail) => total + detail.amount, 0)}</TableCell>
+                              <TableCell>${transaction.details.filter((detail: TransactionDetail) => detail.asset.id === CABLE_LLEVAR_ASSET_ID && detail.movementType === 'EXPENSE').reduce((total: number, detail: TransactionDetail) => total + detail.amount, 0)}</TableCell>
                             </TableRow>
                           ))
                       )}
@@ -348,8 +349,8 @@ export function Conciliations() {
               const transactionsInSection = selectedTransactions.filter(transaction => {
                 if ('details' in transaction) {
                   return transaction.details.some(detail => {
-                    if (section === 'Cable Traer') return detail.asset.name === 'Cable traer' && detail.movementType === 'INCOME';
-                    if (section === 'Cable Llevar') return detail.asset.name === 'Cable llevar' && detail.movementType === 'EXPENSE';
+                    if (section === 'Cable Traer') return detail.asset.id === CABLE_TRAER_ASSET_ID && detail.movementType === 'INCOME';
+                    if (section === 'Cable Llevar') return detail.asset.id === CABLE_LLEVAR_ASSET_ID && detail.movementType === 'EXPENSE';
                     return false;
                   });
                 } else {
@@ -373,18 +374,21 @@ export function Conciliations() {
                         {
                         transactionsInSection.map((transaction, index) => {
                           const transactionId = 'details' in transaction ? transaction.id : transaction.name;
-                          const amount = section === 'Cable Traer' ? 'details' in transaction ? transaction.details.filter((detail: TransactionDetail) => detail.asset.name === 'Cable traer' && detail.movementType === 'INCOME').reduce((total: number, detail: TransactionDetail) => total + detail.amount, 0) : 0 :
-                          section === 'Cable Llevar' ? 'details' in transaction ? transaction.details.filter((detail: TransactionDetail) => detail.asset.name === 'Cable llevar' && detail.movementType === 'EXPENSE').reduce((total: number, detail: TransactionDetail) => total + detail.amount, 0) : 0 :
-                          0;
+                          let displayAmount = 0;
+                          if (section === 'Cable Traer') {
+                            displayAmount = 'details' in transaction ? transaction.details.filter((detail: TransactionDetail) => detail.asset.id === CABLE_TRAER_ASSET_ID && detail.movementType === 'INCOME').reduce((total: number, detail: TransactionDetail) => total + detail.amount, 0) : 0;
+                          } else if (section === 'Cable Llevar') {
+                            displayAmount = 'details' in transaction ? transaction.details.filter((detail: TransactionDetail) => detail.asset.id === CABLE_LLEVAR_ASSET_ID && detail.movementType === 'EXPENSE').reduce((total: number, detail: TransactionDetail) => total + detail.amount, 0) : 0;
+                          }
                           return (
                             <TableRow key={index}>
                               <TableCell className='w-1/2'>{'details' in transaction ? transaction.client.name : transaction.name}</TableCell>
-                              <TableCell className='w-3/12'>${amount}</TableCell>
+                              <TableCell className='w-3/12'>${displayAmount}</TableCell>
                               <TableCell>
                                 <Input
                                   type="number"
                                   step="0.01"
-                                  max={amount}
+                                  max={displayAmount}
                                   placeholder="Monto"
                                   className="w-24"
                                   onChange={(e) => handleAmountChange(transactionId, parseFloat(e.target.value))}

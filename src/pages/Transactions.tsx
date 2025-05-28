@@ -91,7 +91,7 @@ export function Transactions() {
       case "client":
         return !params.id;
       case "operation":
-        return currentClient?.id;
+        return currentClient?.id || params.id;
       case "values":
         return params.id;
       case "logistics":

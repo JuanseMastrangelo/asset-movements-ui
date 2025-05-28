@@ -28,6 +28,8 @@ import { Transaction, TransactionResponse } from "@/models/transaction";
 import { useNavigate, useParams } from "react-router-dom";
 import { transactionsService } from "@/services/api";
 import { Spinner } from "@/components/ui/spinner";
+import { AmountSelectInput } from "@/components/ui/amount-select-input";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface Asset {
   id: string;
@@ -79,6 +81,9 @@ export function OperationForm({ onComplete, clientId }: OperationFormProps) {
   const [loading, setLoading] = useState<boolean>(true);
   const [isReadonly, setIsReadonly] = useState<boolean>(false);
   const navigate = useNavigate();
+  const [showAsPercentage, setShowAsPercentage] = useState(false);
+  const [exchangeRate, setExchangeRate] = useState<string>("1");
+  const [reverseExchangeRate, setReverseExchangeRate] = useState<string>("1");
 
   const form = useForm<FormData>({
     resolver: zodResolver(operationSchema),
@@ -311,57 +316,25 @@ export function OperationForm({ onComplete, clientId }: OperationFormProps) {
           <div className="space-y-4">
             <FormField
               control={form.control}
-              name="ingressAssetId"
-              render={({ field }) => (
+              name="ingressAmount"
+              render={() => (
                 <FormItem>
                   <FormLabel>Activo de Ingreso *</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isReadonly}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar activo" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {assets?.data.map((asset) => (
-                        <SelectItem key={asset.id} value={asset.id}>
-                          {asset.name} ({asset.type})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="ingressAmount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Cantidad de Ingreso *</FormLabel>
                   <FormControl>
-                    <Input
-                      type="text"
-                      inputMode="decimal"
-                      disabled={isReadonly}
-                      {...field}
-                      value={formatAmount(field.value)}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/[^-\d,]+/g, "");
-                        if (value === "") {
-                          field.onChange(0);
-                          return;
-                        }
-                        if (value.split(",").length > 2) return;
-                        if (value.includes(",")) {
-                          const [_, dec] = value.split(",");
-                          if (dec && dec.length > 2) return;
-                        }
-                        const numericValue = parseAmount(value);
-                        field.onChange(numericValue);
+                    <AmountSelectInput
+                      amount={form.watch('ingressAmount')}
+                      onAmountChange={(value) => {
+                        const parsed = parseAmount(value);
+                        form.setValue('ingressAmount', parsed);
                       }}
-                      placeholder="0"
+                      options={assets?.data.map((asset) => ({ value: asset.id, label: `${asset.name} (${asset.type})` })) || []}
+                      selected={form.watch('ingressAssetId')}
+                      onSelectChange={(value) => {
+                        form.setValue('ingressAssetId', value);
+                      }}
+                      placeholderAmount="Cantidad"
+                      placeholderSelect="Seleccionar activo"
+                      disabled={isReadonly}
                     />
                   </FormControl>
                   <FormMessage />
@@ -373,57 +346,25 @@ export function OperationForm({ onComplete, clientId }: OperationFormProps) {
           <div className="space-y-4">
             <FormField
               control={form.control}
-              name="egressAssetId"
-              render={({ field }) => (
+              name="egressAmount"
+              render={() => (
                 <FormItem>
                   <FormLabel>Activo de Egreso *</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isReadonly}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar activo" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {filteredEgressAssets.map((asset) => (
-                        <SelectItem key={asset.id} value={asset.id}>
-                          {asset.name} ({asset.type})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="egressAmount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Cantidad de Egreso *</FormLabel>
                   <FormControl>
-                    <Input
-                      type="text"
-                      inputMode="decimal"
-                      disabled={isReadonly}
-                      {...field}
-                      value={formatAmount(field.value)}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/[^-\d,]+/g, "");
-                        if (value === "") {
-                          field.onChange(0);
-                          return;
-                        }
-                        if (value.split(",").length > 2) return;
-                        if (value.includes(",")) {
-                          const [_, dec] = value.split(",");
-                          if (dec && dec.length > 2) return;
-                        }
-                        const numericValue = parseAmount(value);
-                        field.onChange(numericValue);
+                    <AmountSelectInput
+                      amount={form.watch('egressAmount')}
+                      onAmountChange={(value) => {
+                        const parsed = parseAmount(value);
+                        form.setValue('egressAmount', parsed);
                       }}
-                      placeholder="0"
+                      options={filteredEgressAssets.map((asset) => ({ value: asset.id, label: `${asset.name} (${asset.type})` }))}
+                      selected={form.watch('egressAssetId')}
+                      onSelectChange={(value) => {
+                        form.setValue('egressAssetId', value);
+                      }}
+                      placeholderAmount="Cantidad"
+                      placeholderSelect="Seleccionar activo"
+                      disabled={isReadonly}
                     />
                   </FormControl>
                   <FormMessage />
@@ -431,11 +372,20 @@ export function OperationForm({ onComplete, clientId }: OperationFormProps) {
               )}
             />
           </div>
-          {
-            selectedEgressAssetName && selectedIngressAssetName && (
-              <>
-              
-          {showPercentageField() ? (
+          <div className="flex justify-center mt-2 col-span-2">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="toggle-percentage"
+                checked={showAsPercentage}
+                onCheckedChange={(checked) => setShowAsPercentage(!!checked)}
+                disabled={isReadonly}
+              />
+              <label htmlFor="toggle-percentage" className="select-none cursor-pointer">
+                Mostrar como porcentaje de ganancia
+              </label>
+            </div>
+          </div>
+          {showAsPercentage ? (
             <div className="flex justify-center mt-2 col-span-2">
               <div className="flex items-center justify-center space-x-2 w-full">
                 <Input
@@ -447,33 +397,56 @@ export function OperationForm({ onComplete, clientId }: OperationFormProps) {
                   }}
                   className="w-20 text-center"
                   min="0"
-                  step="1"
+                  step="0.01"
                   disabled={isReadonly}
                 />
-                <span>%</span>
+                <span>% de ganancia</span>
               </div>
             </div>
           ) : (
-            <div className="flex justify-center mt-2 col-span-2">
-              <div className="flex flex-row items-center">
-                <div className="w-auto">
-                  1 {selectedIngressAssetName} =
-                </div> 
-                <div className="flex items-center justify-center space-x-2 w-full">
-                  <Input
-                    type="text"
-                    value={calculateExchangeRate()}
-                    className="w-20 text-center"
-                    disabled
-                  />
-                  <span>{selectedEgressAssetName}</span>
-                </div>
+            <div className="flex flex-col justify-center mt-2 col-span-2 gap-2">
+              <div className="flex flex-row items-center justify-center gap-2">
+                <span>1 {selectedEgressAssetName} =</span>
+                <Input
+                  type="number"
+                  value={exchangeRate}
+                  min="0"
+                  step="0.0001"
+                  className="w-24 text-center"
+                  onChange={(e) => {
+                    setExchangeRate(e.target.value);
+                    // Actualiza el egreso en base a la cotización directa
+                    const ingressAmount = form.watch('ingressAmount');
+                    const newEgress = ingressAmount / parseFloat(e.target.value || '1');
+                    form.setValue('egressAmount', isNaN(newEgress) ? 0 : newEgress);
+                    setReverseExchangeRate((parseFloat(e.target.value || '1') !== 0) ? (1 / parseFloat(e.target.value || '1')).toFixed(6) : "0");
+                  }}
+                  disabled={isReadonly}
+                />
+                <span>{selectedIngressAssetName}</span>
+              </div>
+              <div className="flex flex-row items-center justify-center gap-2">
+                <span>1 {selectedIngressAssetName} =</span>
+                <Input
+                  type="number"
+                  value={reverseExchangeRate}
+                  min="0"
+                  step="0.0001"
+                  className="w-24 text-center"
+                  onChange={(e) => {
+                    setReverseExchangeRate(e.target.value);
+                    // Actualiza el egreso en base a la cotización inversa
+                    const ingressAmount = form.watch('ingressAmount');
+                    const newEgress = ingressAmount * parseFloat(e.target.value || '1');
+                    form.setValue('egressAmount', isNaN(newEgress) ? 0 : newEgress);
+                    setExchangeRate((parseFloat(e.target.value || '1') !== 0) ? (1 / parseFloat(e.target.value || '1')).toFixed(6) : "0");
+                  }}
+                  disabled={isReadonly}
+                />
+                <span>{selectedEgressAssetName}</span>
               </div>
             </div>
           )}
-              </>
-            )
-          }
         </div>
 
         <FormField
@@ -489,20 +462,6 @@ export function OperationForm({ onComplete, clientId }: OperationFormProps) {
             </FormItem>
           )}
         />
-
-        <div>
-          <FormLabel>Documentos Requeridos</FormLabel>
-          <FileUpload
-            value={files}
-            onChange={setFiles}
-            maxFiles={5}
-            maxSize={5 * 1024 * 1024}
-            accept={{
-              "application/pdf": [".pdf"],
-              "image/*": [".png", ".jpg", ".jpeg"],
-            }}
-          />
-        </div>
 
         <div className="flex justify-between">
           <div className="space-x-2">

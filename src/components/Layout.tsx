@@ -69,7 +69,6 @@ export function Layout({ children }: LayoutProps) {
             <Button
               size="icon"
               onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-              effect="shine"
               variant="outline"
             >
               {theme === "light" ? (

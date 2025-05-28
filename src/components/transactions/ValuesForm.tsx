@@ -32,6 +32,9 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [note, setNote] = useState<string>("");
 
+  const CABLE_TRAER_ASSET_ID = import.meta.env.VITE_CABLE_TRAER_ASSET_ID;
+  const CABLE_LLEVAR_ASSET_ID = import.meta.env.VITE_CABLE_LLEVAR_ASSET_ID;
+
   const { data: transactionDetails, isLoading: isLoadingTransaction, error: transactionError, refetch: refetchTransactionDetails } = useQuery({
     queryKey: ["transaction", params.id],
     queryFn: async () => {
@@ -91,17 +94,9 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
 
   const isCompleted = transactionDetails?.state === "COMPLETED";
   
-  const hasImmutableAsset = transactionDetails?.details.some(detail => detail.asset.isImmutable);
+  const hasCableTraer = transactionDetails?.details.some(detail => detail.asset.id === CABLE_TRAER_ASSET_ID);
+  const hasCableLlevar = transactionDetails?.details.some(detail => detail.asset.id === CABLE_LLEVAR_ASSET_ID);
 
-  if (hasImmutableAsset) {
-    return (
-      <div className="flex justify-center items-center h-full">
-        <div className="px-4 py-2 rounded-md w-1/2 text-center">
-          No se permite en este tipo de transacciones, cambia de activo para continuar ó dirigete a conciliaciones para realizar la carga de valores <a href="/conciliations" className="text-blue-500 hover:text-blue-700">aquí</a>.
-        </div>
-      </div>
-    );
-  }
 
   // Calculate total amount for a set of rows
   const calculateTotal = (rows: BillRow[]): number =>
