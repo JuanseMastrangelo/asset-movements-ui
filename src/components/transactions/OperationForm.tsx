@@ -269,29 +269,29 @@ export function OperationForm({ onComplete, clientId }: OperationFormProps) {
   };
   
 
-  const downloadPdfPreview = async () => {
-    try {
-      const response = await api.post(
-        "operations/preview",
-        form.getValues(),
-        { responseType: "blob" }
-      );
+  // const downloadPdfPreview = async () => {
+  //   try {
+  //     const response = await api.post(
+  //       "operations/preview",
+  //       form.getValues(),
+  //       { responseType: "blob" }
+  //     );
 
-      const blob = new Blob([response.data], { type: "application/pdf" });
-      const reader = new FileReader();
-      reader.onload = () => {
-        const pdfWindow = window.open("", "_self");
-        if (pdfWindow) {
-          pdfWindow.document.write(
-            `<iframe width='100%' height='100%' src='${reader.result}'></iframe>`
-          );
-        }
-      };
-      reader.readAsDataURL(blob);
-    } catch (error) {
-      toast.error("No se pudo generar la vista previa");
-    }
-  };
+  //     const blob = new Blob([response.data], { type: "application/pdf" });
+  //     const reader = new FileReader();
+  //     reader.onload = () => {
+  //       const pdfWindow = window.open("", "_self");
+  //       if (pdfWindow) {
+  //         pdfWindow.document.write(
+  //           `<iframe width='100%' height='100%' src='${reader.result}'></iframe>`
+  //         );
+  //       }
+  //     };
+  //     reader.readAsDataURL(blob);
+  //   } catch (error) {
+  //     toast.error("No se pudo generar la vista previa");
+  //   }
+  // };
 
   // Verificar si al menos un activo seleccionado tiene isPercentage como true
   // const showPercentageField = () => {
