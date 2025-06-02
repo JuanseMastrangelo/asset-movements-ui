@@ -25,7 +25,7 @@ export const data = {
           url: "/",
         },
         {
-          title: "Crear transaccion",
+          title: "Crear transacción",
           url: "/transactions",
         },
         {

@@ -3,7 +3,6 @@ import { Card } from "@/components/ui/card";
 import { ClientSelection } from "@/components/transactions/ClientSelection";
 import { OperationForm } from "@/components/transactions/OperationForm";
 import { useParams, useSearchParams } from "react-router-dom";
-import { Badge } from "@/components/ui/badge";
 import { Client } from "@/models";
 import ValuesForm from "@/components/transactions/ValuesForm";
 import { LogisticsForm } from "@/components/transactions/LogisticsForm";
@@ -67,7 +66,7 @@ export function Transactions() {
       case "operation":
         return (
           <OperationForm
-            clientId={currentClient?.id}
+            client={currentClient}
             onComplete={handleOperationComplete}
           />
         );
@@ -104,10 +103,9 @@ export function Transactions() {
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">
-          {currentClient ? (
+          {params.id ? (
             <div className="flex items-center gap-2">
-              Transacción | <div className="bg-black text-white px-2 py-1 mt-2 rounded-md text-sm">{currentClient.name}</div>
-              <Badge variant="outline" className="mt-2">Transacción ID: {currentClient.id}</Badge>
+              Editar Transacción
             </div>
           ) : (
             "Nueva Transacción"

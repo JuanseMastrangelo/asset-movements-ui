@@ -22,17 +22,7 @@ import {
 import { Plus, History, User } from "lucide-react";
 import { toast } from "sonner";
 import { Client } from "@/models";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { ClientForm, ClientFormData } from "@/components/ui/ClientForm";
 import { TransactionHistoryDialog } from "./TransactionHistoryDialog";
 import { useNavigate } from 'react-router-dom';
 
@@ -40,16 +30,6 @@ interface ClientSelectionProps {
   onComplete: (client: Client) => void;
   onClientSelected: (client: Client | undefined) => void;
 }
-
-const clientSchema = z.object({
-  name: z.string().min(1, "El nombre es requerido"),
-  email: z.string().email("Email inválido"),
-  phone: z.string().min(1, "El teléfono es requerido"),
-  address: z.string().min(1, "La dirección es requerida"),
-  country: z.string().min(1, "El país es requerido"),
-});
-
-type ClientFormData = z.infer<typeof clientSchema>;
 
 export function ClientSelection({ onComplete, onClientSelected }: ClientSelectionProps) {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
@@ -74,30 +54,6 @@ export function ClientSelection({ onComplete, onClientSelected }: ClientSelectio
   useEffect(() => {
     onClientSelected(selectedClient ?? undefined);
   }, [selectedClient]);
-
-  const form = useForm<ClientFormData>({
-    resolver: zodResolver(clientSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      phone: "",
-      address: "",
-      country: "",
-    },
-  });
-
-  const handleCreateClient = async (data: ClientFormData) => {
-    try {
-      const response = await api.post<{ data: Client }>("/clients", data);
-      toast.success("Cliente creado correctamente");
-      setOpen(false);
-      form.reset();
-      await refetchClients();
-      setSelectedClient(response.data.data);
-    } catch (error) {
-      toast.error("No se pudo crear el cliente");
-    }
-  };
 
   const handleClientClick = (client: Client) => {
     setSelectedClient(client);
@@ -131,78 +87,21 @@ export function ClientSelection({ onComplete, onClientSelected }: ClientSelectio
             <DialogHeader>
               <DialogTitle>Crear Nuevo Cliente</DialogTitle>
             </DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleCreateClient)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nombre</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="email" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Teléfono</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="address"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Dirección</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="country"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>País</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button type="submit" className="w-full">
-                  Crear Cliente
-                </Button>
-              </form>
-            </Form>
+            <ClientForm
+              onSubmit={async (data: ClientFormData) => {
+                try {
+                  const response = await api.post<{ data: Client }>("/clients", data);
+                  toast.success("Cliente creado correctamente");
+                  setOpen(false);
+                  await refetchClients();
+                  setSelectedClient(response.data.data);
+                } catch (error) {
+                  toast.error("No se pudo crear el cliente");
+                }
+              }}
+              onCancel={() => setOpen(false)}
+              submitLabel="Crear Cliente"
+            />
           </DialogContent>
         </Dialog>
         {

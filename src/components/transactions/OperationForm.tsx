@@ -21,7 +21,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { transactionsService } from "@/services/api";
 import { Spinner } from "@/components/ui/spinner";
 import { AmountSelectInput } from "@/components/ui/amount-select-input";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { Client } from "@/models";
 
 interface Asset {
   id: string;
@@ -37,7 +38,7 @@ interface TransactionRule {
 }
 
 interface OperationFormProps {
-  clientId: string | undefined;
+  client: Client | undefined;
   onComplete: (data: Transaction) => void;
 }
 
@@ -65,7 +66,7 @@ const operationSchema = z.object({
 
 type FormData = z.infer<typeof operationSchema>;
 
-export function OperationForm({ onComplete, clientId }: OperationFormProps) {
+export function OperationForm({ onComplete, client }: OperationFormProps) {
   const { id } = useParams<{ id: string }>();
   // const [files, setFiles] = useState<File[]>([]);
   const [percentageChange, setPercentageChange] = useState<string>("");
@@ -73,10 +74,10 @@ export function OperationForm({ onComplete, clientId }: OperationFormProps) {
   const [loading, setLoading] = useState<boolean>(true);
   const [isReadonly, setIsReadonly] = useState<boolean>(false);
   const navigate = useNavigate();
-  const [showAsPercentage, setShowAsPercentage] = useState(false);
+  // const [showAsPercentage, setShowAsPercentage] = useState(false);
   const [exchangeRate, setExchangeRate] = useState<string>("1");
   const [reverseExchangeRate, setReverseExchangeRate] = useState<string>("1");
-
+  const [transaction, setTransaction] = useState<Transaction | null>(null);
   const form = useForm<FormData>({
     resolver: zodResolver(operationSchema),
     defaultValues: {
@@ -122,6 +123,7 @@ export function OperationForm({ onComplete, clientId }: OperationFormProps) {
       if (id && assets) {
         try {
           const transaction = await transactionsService.getOne(id);
+          setTransaction(transaction);
           form.reset({
             ingressAssetId: transaction.details.find(d => d.movementType === "INCOME")?.assetId || "",
             ingressAmount: transaction.details.find(d => d.movementType === "INCOME")?.amount || 0,
@@ -189,17 +191,8 @@ export function OperationForm({ onComplete, clientId }: OperationFormProps) {
     }
   };
 
-  // const formatAmount = (value: number) => {
-  //   if (value === 0) return "";
-  //   const [integerPart, decimalPart] = value.toString().split(".");
-  //   if (decimalPart) {
-  //     return `${integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".")},${decimalPart}`;
-  //   }
-  //   return integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  // };
-
   const parseAmount = (value: string) => {
-    const cleanValue = value.replace(/\./g, "").replace(",", ".");
+    const cleanValue = value.replace(",", ".");
     const parsedValue = parseFloat(cleanValue);
     return isNaN(parsedValue) ? 0 : parsedValue;
   };
@@ -218,7 +211,7 @@ export function OperationForm({ onComplete, clientId }: OperationFormProps) {
         return;
       }
       const body = {
-        clientId: !id ? clientId : null,
+        clientId: !id ? client?.id : null,
         notes: data.notes || "",
         details: [
           {
@@ -319,6 +312,21 @@ export function OperationForm({ onComplete, clientId }: OperationFormProps) {
   }
 
   return (
+    <>
+    {
+      <div className="mb-4 text-sm border-b pb-4">
+        <div className="flex items-center gap-4">
+          <Avatar className="h-12 w-12">
+            <AvatarImage src={`https://avatar.vercel.sh/${client? client.email : transaction?.client.email}`} alt="Cliente" />
+            <AvatarFallback>{client? client.name.split(' ').map(n => n[0]).join('').toUpperCase() : transaction?.client.name.split(' ').map(n => n[0]).join('').toUpperCase()}</AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col">
+            <span className="font-semibold">{client? client.name : transaction?.client.name}</span>
+            <span className="text-muted-foreground">{client? client.email : transaction?.client.email}</span>
+          </div>
+        </div>
+      </div>
+    }
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid grid-cols-2 gap-6">
@@ -331,7 +339,7 @@ export function OperationForm({ onComplete, clientId }: OperationFormProps) {
                   <FormLabel>Activo de Ingreso *</FormLabel>
                   <FormControl>
                     <AmountSelectInput
-                      amount={form.watch('ingressAmount')}
+                      amount={form.watch('ingressAmount') === 0 ? "" : form.watch('ingressAmount')}
                       onAmountChange={(value) => {
                         const parsed = parseAmount(value);
                         form.setValue('ingressAmount', parsed);
@@ -361,7 +369,7 @@ export function OperationForm({ onComplete, clientId }: OperationFormProps) {
                   <FormLabel>Activo de Egreso *</FormLabel>
                   <FormControl>
                     <AmountSelectInput
-                      amount={form.watch('egressAmount')}
+                      amount={form.watch('egressAmount') === 0 ? "" : form.watch('egressAmount')}
                       onAmountChange={(value) => {
                         const parsed = parseAmount(value);
                         form.setValue('egressAmount', parsed);
@@ -381,20 +389,27 @@ export function OperationForm({ onComplete, clientId }: OperationFormProps) {
               )}
             />
           </div>
-          <div className="flex justify-center mt-2 col-span-2">
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="toggle-percentage"
-                checked={showAsPercentage}
-                onCheckedChange={(checked) => setShowAsPercentage(!!checked)}
-                disabled={isReadonly}
-              />
-              <label htmlFor="toggle-percentage" className="select-none cursor-pointer">
-                Mostrar como porcentaje de ganancia
-              </label>
-            </div>
-          </div>
-          {showAsPercentage ? (
+          {(form.watch('ingressAssetId') && form.watch('egressAssetId') && form.watch('ingressAmount') > 0 && form.watch('egressAmount') > 0) && (
+            <>
+            {/* <div className="flex justify-center mt-2 col-span-2">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="toggle-percentage"
+                  checked={showAsPercentage}
+                  onCheckedChange={(checked) => setShowAsPercentage(!!checked)}
+                  disabled
+                />
+                <label htmlFor="toggle-percentage" className="select-none cursor-pointer">
+                  {form.watch('egressAmount') > form.watch('ingressAmount')
+                    ? 'Mostrar como porcentaje de pérdida'
+                    : form.watch('egressAmount') < form.watch('ingressAmount')
+                    ? 'Mostrar como porcentaje de ganancia'
+                    : 'Mostrar como porcentaje'}
+                </label>
+              </div>
+            </div> */}
+            
+          {false ? (
             <div className="flex justify-center mt-2 col-span-2">
               <div className="flex items-center justify-center space-x-2 w-full">
                 <Input
@@ -430,6 +445,8 @@ export function OperationForm({ onComplete, clientId }: OperationFormProps) {
               </div>
             </div>
           )}
+            </>
+          )}
         </div>
 
         <FormField
@@ -453,10 +470,11 @@ export function OperationForm({ onComplete, clientId }: OperationFormProps) {
             </Button> */}
           </div>
           <Button type="submit" onClick={(e) => { if (isReadonly) { e.preventDefault(); onComplete({} as Transaction); } }}>
-            {isReadonly ? "Siguiente" : "Guardar Operación"}
+            {isReadonly ? "Siguiente" : "Cargar Operación"}
           </Button>
         </div>
       </form>
     </Form>
+    </>
   );
 }

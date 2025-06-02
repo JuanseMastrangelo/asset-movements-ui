@@ -130,7 +130,7 @@ export function TransactionRules() {
                     onValueChange={(value) => setNewRule({ ...newRule, sourceAssetId: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar Asset 1" />
+                      <SelectValue placeholder="Seleccionar Ingreso" />
                     </SelectTrigger>
                     <SelectContent>
                       {assetsData?.data.map((asset: Asset) => (
@@ -146,7 +146,7 @@ export function TransactionRules() {
                     onValueChange={(value) => setNewRule({ ...newRule, targetAssetId: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar Asset 2" />
+                      <SelectValue placeholder="Seleccionar Egreso" />
                     </SelectTrigger>
                     <SelectContent>
                       {assetsData?.data.map((asset: Asset) => (
@@ -188,8 +188,8 @@ export function TransactionRules() {
         <Table className="w-full">
           <TableHeader>
             <TableRow>
-              <TableHead>Asset 1</TableHead>
-              <TableHead>Asset 2</TableHead>
+              <TableHead>Ingresa</TableHead>
+              <TableHead>Egresa</TableHead>
               <TableHead>Estado</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
             </TableRow>

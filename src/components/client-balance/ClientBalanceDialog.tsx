@@ -97,7 +97,9 @@ export const ClientBalanceDialog: React.FC<ClientBalanceDialogProps> = ({ client
                     <TableCell>{balance.asset.name}</TableCell>
                     <TableCell>{balance.asset.description}</TableCell>
                     <TableCell>{balance.asset.type === 'PHYSICAL' ? 'Físico' : 'Digital'}</TableCell>
-                    <TableCell>${balance.balance}</TableCell>
+                    <TableCell className={balance.balance === 0 ? 'text-black' : balance.balance < 0 ? 'text-red-500' : 'text-green-700'}>
+                      {balance.balance === 0 ? '' : balance.balance < 0 ? `${balance.balance} (sistema debe)` : `${balance.balance} (cliente debe)`}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

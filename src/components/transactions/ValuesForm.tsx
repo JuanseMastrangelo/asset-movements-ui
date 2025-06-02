@@ -10,6 +10,11 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { Denomination } from "@/models/denomination";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Plus, X, TrendingUp, TrendingDown, Clock, Upload, InfoIcon } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 
 interface BillRow {
   count: string;
@@ -92,7 +97,7 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
     .filter(detail => detail.movementType === "EXPENSE")
     .reduce((total, detail) => total + detail.amount, 0);
 
-  const isCompleted = transactionDetails?.state === "COMPLETED";
+  // const isCompleted = transactionDetails?.state === "COMPLETED";
   
   // const hasCableTraer = transactionDetails?.details.some(detail => detail.asset.id === CABLE_TRAER_ASSET_ID);
   // const hasCableLlevar = transactionDetails?.details.some(detail => detail.asset.id === CABLE_LLEVAR_ASSET_ID);
@@ -157,8 +162,8 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
     setEgressRows(updatedRows);
   };
 
-  const allRowsComplete = (rows: BillRow[]): boolean =>
-    rows.every((row) => row.count !== "" && row.billValue !== "");
+  // const allRowsComplete = (rows: BillRow[]): boolean =>
+  //   rows.every((row) => row.count !== "" && row.billValue !== "");
 
   // Handle submission (PATCH transaction state to CURRENT_ACCOUNT)
   const handleSubmit = async (redirectToLogistics: boolean) => {
@@ -233,267 +238,345 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
   };
 
   return (
-    <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
-      {
-        !isCompleted ?
-        <>
-      <div className="flex rounded">
-        {/* Ingreso Section */}
-        <div className="flex-1 p-4 border-r">
-          <div className="mb-2 font-semibold">Ingreso ({IngressData?.asset.name})</div>
-          {/* Header for columns */}
-          <div className="flex text-sm font-medium">
-            <div className="w-1/2">Cantidad</div>
-            <div className="w-1/2">Denominación</div>
+    <>
+      <div className="mb-4 text-sm border-b pb-4">
+        <div className="flex items-center gap-4">
+          <Avatar className="h-12 w-12">
+            <AvatarImage src={`https://avatar.vercel.sh/${transactionDetails?.client.email}`} alt={transactionDetails?.client.name} />
+            <AvatarFallback>{transactionDetails?.client.name.split(' ').map(n => n[0]).join('').toUpperCase()}</AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col">
+            <span className="font-semibold">{transactionDetails?.client.name}</span>
+            <span className="text-muted-foreground">{transactionDetails?.client.email}</span>
           </div>
-          {ingressRows.map((row, index) => (
-            <div key={`ingress-${index}`} className="flex items-center my-2">
-              <div className="w-1/2">
-                <Input
-                  type="number"
-                  placeholder="Cantidad"
-                  value={row.count}
-                  onChange={(e) => handleIngressChange(index, { count: e.target.value, billValue: row.billValue, denominationId: row.denominationId })}
-                />
-              </div>
-              <div className="px-2">x</div>
-              <div className="w-1/2">
-                <Select onValueChange={(value) => {
-                  const [denominationId, billValue] = value.split("|");
-                  handleIngressChange(index, { count: row.count, denominationId, billValue });
-                }} value={`${row.denominationId}|${row.billValue}`}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar denominación" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filteredIngressDenominations.map((denomination) => (
-                      <SelectItem key={denomination.id} value={`${denomination.id}|${denomination.value.toString()}`}>
-                        {denomination.value}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <button type="button" onClick={() => handleRemoveIngressRow(index)} className="ml-2 text-red-500">x</button>
-              <div className="ml-2 text-sm">
-                {row.count && row.billValue && (
-                  <>
-                    {row.count} x {row.billValue} ={" "}
-                    {parseFloat(row.count) * parseFloat(row.billValue)}
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
-          <Button
-            type="button"
-            variant="outline"
-            onClick={addIngressRow}
-            disabled={!canAddRow(ingressRows)}
-            className="mt-2"
-          >
-            Agregar fila
-          </Button>
-          <div className="mt-2 text-sm">
-            Total Nuevo Ingreso: {calculateTotal(ingressRows)} <br />
-            Restante: {pendingIngress - billDetailsIncome.reduce((total, detail) => total + (detail.quantity * detail.denomination.value), 0) - calculateTotal(ingressRows)}
-          </div>
-          {(pendingIngress - billDetailsIncome.reduce((total, detail) => total + (detail.quantity * detail.denomination.value), 0) - calculateTotal(ingressRows) < 0) && (
-            <div className="text-red-500 text-sm">El total de ingresos supera lo permitido.</div>
-          )}
         </div>
-
-        {/* Egreso Section */}
-        <div className="flex-1 p-4">
-          <div className="mb-2 font-semibold">Egreso ({EgressData?.asset.name})</div>
-          {/* Header for columns */}
-          <div className="flex text-sm font-medium">
-            <div className="w-1/2">Cantidad</div>
-            <div className="w-1/2">Denominación</div>
-          </div>
-          {egressRows.map((row, index) => (
-            <div key={`egress-${index}`} className="flex items-center my-2">
-              <div className="w-1/2">
-                <Input
-                  type="number"
-                  placeholder="Cantidad"
-                  value={row.count}
-                  onChange={(e) => handleEgressChange(index, { count: e.target.value, billValue: row.billValue, denominationId: row.denominationId })}
-                />
-              </div>
-              <div className="px-2">x</div>
-              <div className="w-1/2">
-                <Select onValueChange={(value) => {
-                  const [denominationId, billValue] = value.split("|");
-                  handleEgressChange(index, { count: row.count, denominationId, billValue });
-                }} value={`${row.denominationId}|${row.billValue}`}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar denominación" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filteredEgressDenominations.map((denomination) => (
-                      <SelectItem key={denomination.id} value={`${denomination.id}|${denomination.value.toString()}`}>
-                        {denomination.value}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <button type="button" onClick={() => handleRemoveEgressRow(index)} className="ml-2 text-red-500">x</button>
-              <div className="ml-2 text-sm">
-                {row.count && row.billValue && (
-                  <>
-                    {row.count} x {row.billValue} ={" "}
-                    {parseFloat(row.count) * parseFloat(row.billValue)}
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
-          <Button
-            type="button"
-            variant="outline"
-            onClick={addEgressRow}
-            disabled={!canAddRow(egressRows)}
-            className="mt-2"
-          >
-            Agregar fila
-          </Button>
-          <div className="mt-2 text-sm">
-            Total Nuevo Egreso: {calculateTotal(egressRows)} <br />
-            Restante: {pendingEgress - billDetailsEgress.reduce((total, detail) => total + (detail.quantity * detail.denomination.value), 0) - calculateTotal(egressRows)}
-          </div>
-          {(pendingEgress - billDetailsEgress.reduce((total, detail) => total + (detail.quantity * detail.denomination.value), 0) - calculateTotal(egressRows) < 0) && (
-            <div className="text-red-500 text-sm">El total de egreso supera lo permitido.</div>
-          )}
-        </div>
-        <hr />
-        {error && <div className="text-red-500">{error}</div>}
       </div>
 
-      <div className="px-4">
-        <label htmlFor="transaction-note" className="block text-sm font-medium text-gray-700 dark:text-white">
-          Nota de la Transacción
-        </label>
-        <textarea
-          id="transaction-note"
-          name="transaction-note"
-          rows={3}
-          placeholder="Agregar una nota..."
-          className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-800 dark:text-white"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-        />
+      <div className="mb-4 text-sm pb-4 flex flex-col gap-2 bg-amber-100 p-4 text-black">
+        <span className="flex items-center gap-1"><InfoIcon className="w-4 h-4 text-amber-800" /> Nota General:</span>
+        <span>{transactionDetails?.notes}</span>
       </div>
-      </>
-       :
-       <div className="flex justify-end space-x-4">
-          <div className="bg-green-500 text-white px-4 py-2 rounded-md">Transacción Completada</div>
-        </div>
-      }
 
-      
-      
-      <div className="mt-6 px-4">
-      <h2 className="text-lg font-semibold mb-2">Resumen General</h2>
-        <Table className="min-w-full ">
-          <TableHeader>
-            <TableRow>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Valor esperado</TableHead>
-              <TableHead>Completado</TableHead>
-              <TableHead>Pendiente</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <TableRow>
-              <TableCell className="text-left py-2">Ingreso ({IngressData?.asset.name})</TableCell>
-              <TableCell className="text-left py-2">$ {allowedIngressTotal}</TableCell>
-              <TableCell className="text-left py-2">$ {childTransactions.flatMap(transaction => transaction.details).filter(detail => detail.movementType === "INCOME").reduce((total, detail) => total + detail.amount, 0)}</TableCell>
-              <TableCell className="text-left py-2">$ {pendingIngress}</TableCell>
-            </TableRow>
-            <TableRow>
-            <TableCell className="text-left py-2">Egreso ({EgressData?.asset.name})</TableCell>
-              <TableCell className="text-left py-2">$ {allowedEgressTotal}</TableCell>
-              <TableCell className="text-left py-2">$ {childTransactions.flatMap(transaction => transaction.details).filter(detail => detail.movementType === "EXPENSE").reduce((total, detail) => total + detail.amount, 0)}</TableCell>
-              <TableCell className="text-left py-2">$ {pendingEgress}</TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-
-        <h2 className="text-lg font-semibold mb-2 mt-4">Resumen de Movimientos</h2>
-        {childTransactions.length > 0 ? (
-          <Table className="min-w-full">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Fecha</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Cantidad</TableHead>
-                <TableHead>Nota</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {childTransactions
-                .flatMap((transaction) => transaction.details.map((detail) => ({
-                  ...detail,
-                  date: transaction.date,
-                  notes: transaction.notes
-                })))
-                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-                .map((detail, index) => (
-                  <TableRow key={index} className="border-t">
-                    <TableCell className="text-left py-2">{new Date(detail.date).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}</TableCell>
-                    <TableCell className="text-left py-2">
-                      <Badge
-                        variant={detail.movementType === "INCOME" ? "success" : "destructive"}
-                        style={{
-                          backgroundColor: "#FFFFFF",
-                          borderColor: detail.movementType === "INCOME" ? "#28a745" : "#dc3545",
-                          color: detail.movementType === "INCOME" ? "#28a745" : "#dc3545",
-                          borderWidth: "1px",
-                          borderStyle: "solid"
-                        }}
+      <div className="min-h-screen">
+        <div className="mx-auto max-w-7xl space-y-6">
+          
+          {/* Main Transaction Forms */}
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Income Section */}
+            <Card className="bg-white dark:bg-gray-800 rounded-lg border">
+              <CardHeader className="bg-green-50 border-b rounded-t-lg">
+                <CardTitle className="flex items-center gap-2 text-green-800">
+                  <TrendingUp className="h-5 w-5" />
+                  Ingreso ({IngressData?.asset.name})
+                </CardTitle>
+                <CardDescription>Registra los ingresos en ({IngressData?.asset.name})</CardDescription>
+              </CardHeader>
+              <CardContent className="p-6 space-y-4">
+                {ingressRows.map((row, index) => (
+                  <div key={`ingress-${index}`} className="flex gap-3 items-end">
+                    <div className="flex-1">
+                      <Label htmlFor={`income-amount-${index}`} className="text-sm font-medium">
+                        Cantidad
+                      </Label>
+                      <Input
+                        id={`income-amount-${index}`}
+                        type="number"
+                        placeholder="0.00"
+                        value={row.count}
+                        onChange={(e) => handleIngressChange(index, { count: e.target.value, billValue: row.billValue, denominationId: row.denominationId })}
+                        className="mt-1"
+                        min={0}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <Label htmlFor={`income-denomination-${index}`} className="text-sm font-medium">
+                        Denominación
+                      </Label>
+                      <Select onValueChange={(value) => {
+                        const [denominationId, billValue] = value.split("|");
+                        handleIngressChange(index, { count: row.count, denominationId, billValue });
+                      }} value={`${row.denominationId}|${row.billValue}`}> 
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Seleccionar denominación" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {filteredIngressDenominations.map((denomination) => (
+                            <SelectItem key={denomination.id} value={`${denomination.id}|${denomination.value.toString()}`}>
+                              {denomination.value}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {ingressRows.length > 1 && (
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleRemoveIngressRow(index)}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
                       >
-                        {detail.movementType === "INCOME" ? "Ingreso" : "Egreso"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-left py-2">$ {detail.amount} {transactionDetails?.details.find((d) => d.assetId === detail.assetId)?.asset.name}</TableCell>
-                    <TableCell className="text-left py-2">{detail.notes}</TableCell>
-                  </TableRow>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {/* <div className="ml-2 text-sm">
+                      {row.count && row.billValue && (
+                        <>
+                          {row.count} x {row.billValue} = {parseFloat(row.count) * parseFloat(row.billValue)}
+                        </>
+                      )}
+                    </div> */}
+                  </div>
                 ))}
-            </TableBody>
-          </Table>
-        ) : (
-          <div>No hay movimientos previos</div>
-        )}
-      </div>
+                <Button
+                  variant="outline"
+                  onClick={addIngressRow}
+                  className="w-full border-dashed bg-gray-50"
+                  disabled={!canAddRow(ingressRows)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Agregar fila
+                </Button>
+                <div className="mt-6 py-2">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="font-medium">Total Nuevo Ingreso:</span>
+                    <span className="font-bold">${calculateTotal(ingressRows).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm mt-1">
+                    <span>Restante:</span>
+                    <span className="font-semibold">${pendingIngress - billDetailsIncome.reduce((total, detail) => total + (detail.quantity * detail.denomination.value), 0) - calculateTotal(ingressRows)}</span>
+                  </div>
+                  {(pendingIngress - billDetailsIncome.reduce((total, detail) => total + (detail.quantity * detail.denomination.value), 0) - calculateTotal(ingressRows) < 0) && (
+                    <div className="text-red-500 text-sm">El total de ingresos supera lo permitido.</div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
 
-      {
-        !isCompleted &&
-        <>
-        <div className="flex justify-end space-x-4 px-4">
-        <Button
-          type="button"
-          variant="outline"
-          disabled={
-            isSubmitting ||
-            (
-              !allRowsComplete(ingressRows) &&
-              !allRowsComplete(egressRows)
-            ) ||
-            (
-              (pendingIngress - calculateTotal(ingressRows) < 0) ||
-              (pendingEgress - calculateTotal(egressRows) < 0)
-            )
-          }
-          onClick={() => handleSubmit(false)}
-        >
-          Guardar Carga de valores
-        </Button>
+            {/* Expense Section */}
+            <Card className=" bg-white dark:bg-gray-800 rounded-lg border">
+              <CardHeader className="bg-red-50 border-b rounded-t-lg">
+                <CardTitle className="flex items-center gap-2 text-red-800">
+                  <TrendingDown className="h-5 w-5" />
+                  Egreso ({EgressData?.asset.name})
+                </CardTitle>
+                <CardDescription>Registra los egresos en {EgressData?.asset.name}</CardDescription>
+              </CardHeader>
+              <CardContent className="p-6 space-y-4">
+                {egressRows.map((row, index) => (
+                  <div key={`egress-${index}`} className="flex gap-3 items-end">
+                    <div className="flex-1">
+                      <Label htmlFor={`expense-amount-${index}`} className="text-sm font-medium">
+                        Cantidad
+                      </Label>
+                      <Input
+                        id={`expense-amount-${index}`}
+                        type="number"
+                        placeholder="0.00"
+                        value={row.count}
+                        onChange={(e) => handleEgressChange(index, { count: e.target.value, billValue: row.billValue, denominationId: row.denominationId })}
+                        className="mt-1" 
+                        min={0}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <Label htmlFor={`expense-denomination-${index}`} className="text-sm font-medium">
+                        Denominación
+                      </Label>
+                      <Select onValueChange={(value) => {
+                        const [denominationId, billValue] = value.split("|");
+                        handleEgressChange(index, { count: row.count, denominationId, billValue });
+                      }} value={`${row.denominationId}|${row.billValue}`}> 
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Seleccionar denominación" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {filteredEgressDenominations.map((denomination) => (
+                            <SelectItem key={denomination.id} value={`${denomination.id}|${denomination.value.toString()}`}>
+                              {denomination.value}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {egressRows.length > 1 && (
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleRemoveEgressRow(index)}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {/* <div className="ml-2 text-sm">
+                      {row.count && row.billValue && (
+                        <>
+                          {row.count} x {row.billValue} = {parseFloat(row.count) * parseFloat(row.billValue)}
+                        </>
+                      )}
+                    </div> */}
+                  </div>
+                ))}
+                <Button
+                  variant="outline"
+                  onClick={addEgressRow}
+                  className="w-full border-dashed bg-gray-50"
+                  disabled={!canAddRow(egressRows)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Agregar fila
+                </Button>
+                <div className="mt-6 py-2">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="font-medium">Total Nuevo Egreso:</span>
+                    <span className="font-bold">${calculateTotal(egressRows).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm mt-1">
+                    <span>Restante:</span>
+                    <span className="font-semibold">${pendingEgress - billDetailsEgress.reduce((total, detail) => total + (detail.quantity * detail.denomination.value), 0) - calculateTotal(egressRows)}</span>
+                  </div>
+                  {(pendingEgress - billDetailsEgress.reduce((total, detail) => total + (detail.quantity * detail.denomination.value), 0) - calculateTotal(egressRows) < 0) && (
+                    <div className="text-red-500 text-sm">El total de egreso supera lo permitido.</div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Transaction Notes */}
+          <Card className="bg-white dark:bg-gray-800 rounded-lg border">
+            <CardHeader>
+              <CardTitle className="text-gray-800 dark:text-white">Nota de la Transacción</CardTitle>
+              <CardDescription>Agrega detalles adicionales sobre esta transacción</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                placeholder="Agregar una nota..."
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                className="min-h-[100px] resize-none"
+              />
+            </CardContent>
+          </Card>
+
+          
+          {/* Action Buttons */}
+          <div className="flex gap-4 justify-end">
+            <Button size="lg" className="w-full py-5 text-xl" onClick={() => handleSubmit(false)}
+            disabled={isSubmitting || (Number(calculateTotal(ingressRows).toFixed(2)) === 0 && Number(calculateTotal(egressRows).toFixed(2)) === 0)}>
+              <Upload className="h-4 w-4 mr-2" />
+              Realizar Carga de valores
+            </Button>
+            {error && <div className="text-red-500 text-sm">{error}</div>}
+          </div>
+
+          {/* General Summary */}
+          <Card className="bg-white dark:bg-gray-800 rounded-lg mt-24 border">
+            <CardHeader>
+              <CardTitle className="text-gray-800 dark:text-white">Resumen General</CardTitle>
+              <CardDescription>Estado actual de las transacciones</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-white">Tipo</th>
+                      <th className="text-right py-3 px-4 font-semibold text-gray-700 dark:text-white">Valor esperado</th>
+                      <th className="text-right py-3 px-4 font-semibold text-gray-700 dark:text-white">Completado</th>
+                      <th className="text-right py-3 px-4 font-semibold text-gray-700 dark:text-white">Pendiente</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-b border-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-2">
+                          <TrendingUp className="h-4 w-4 text-green-600" />
+                          <span className="font-medium">Ingreso ({IngressData?.asset.name})</span>
+                        </div>
+                      </td>
+                      <td className="text-right py-4 px-4 font-semibold text-green-600">${allowedIngressTotal}</td>
+                      <td className="text-right py-4 px-4 text-gray-600 dark:text-white">${childTransactions.flatMap(transaction => transaction.details).filter(detail => detail.movementType === "INCOME").reduce((total, detail) => total + detail.amount, 0)}</td>
+                      <td className="text-right py-4 px-4 font-semibold text-green-600">${pendingIngress}</td>
+                    </tr>
+                    <tr className="border-b border-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-2">
+                          <TrendingDown className="h-4 w-4 text-red-600" />
+                          <span className="font-medium">Egreso ({EgressData?.asset.name})</span>
+                        </div>
+                      </td>
+                      <td className="text-right py-4 px-4 font-semibold text-red-600">${allowedEgressTotal}</td>
+                      <td className="text-right py-4 px-4 text-gray-600 dark:text-white">${childTransactions.flatMap(transaction => transaction.details).filter(detail => detail.movementType === "EXPENSE").reduce((total, detail) => total + detail.amount, 0)}</td>
+                      <td className="text-right py-4 px-4 font-semibold text-red-600">${pendingEgress}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Movement Summary */}
+          <Card className="bg-white dark:bg-gray-800 rounded-lg border">
+            <CardHeader>
+              <CardTitle className="text-gray-800 dark:text-white">Resumen de Movimientos</CardTitle>
+              <CardDescription>Historial de transacciones anteriores</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {childTransactions.length > 0 ? (
+                <Table className="min-w-full">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Fecha</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Cantidad</TableHead>
+                      <TableHead>Nota</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {childTransactions
+                      .flatMap((transaction) => transaction.details.map((detail) => ({
+                        ...detail,
+                        date: transaction.date,
+                        notes: transaction.notes
+                      })))
+                      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                      .map((detail, index) => (
+                        <TableRow key={index} className="border-t">
+                          <TableCell className="text-left py-2">{new Date(detail.date).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}</TableCell>
+                          <TableCell className="text-left py-2">
+                            <Badge
+                              variant={detail.movementType === "INCOME" ? "success" : "destructive"}
+                              style={{
+                                backgroundColor: "#FFFFFF",
+                                borderColor: detail.movementType === "INCOME" ? "#28a745" : "#dc3545",
+                                color: detail.movementType === "INCOME" ? "#28a745" : "#dc3545",
+                                borderWidth: "1px",
+                                borderStyle: "solid"
+                              }}
+                            >
+                              {detail.movementType === "INCOME" ? "Ingreso" : "Egreso"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-left py-2">$ {detail.amount} {transactionDetails?.details.find((d) => d.assetId === detail.assetId)?.asset.name}</TableCell>
+                          <TableCell className="text-left py-2">{detail.notes}</TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <Clock className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                  <p className="text-lg font-medium">No hay movimientos previos</p>
+                  <p className="text-sm">Los movimientos aparecerán aquí una vez que se procesen las transacciones</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+        </div>
       </div>
-      </>
-      }
-    </form>
+    </>
   );
 };
 
