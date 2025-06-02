@@ -257,7 +257,7 @@ export function OperationForm({ onComplete, client }: OperationFormProps) {
       //   });
       // }
     } catch (error) {
-      toast.error("No se pudo crear/actualizar la transacción");
+      console.error(error);
     }
   };
   

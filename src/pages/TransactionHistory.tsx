@@ -22,12 +22,15 @@ import { PaginationControl } from "@/components/ui/PaginationControl";
 
 export function TransactionHistory() {
   const today = new Date();
-  const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
+  // Establecer la hora a 00:00:00 para el inicio del día
+  const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  // Establecer la hora a 23:59:59 para el fin del día
+  const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
 
   const [clientId, setClientId] = useState<string | undefined>(useParams().clientId);
   const [state, setState] = useState<string | undefined>(useParams().state);
-  const [startDate, setStartDate] = useState<string>(useParams().startDate || lastMonth.toISOString());
-  const [endDate, setEndDate] = useState<string>(useParams().endDate || today.toISOString());
+  const [startDate, setStartDate] = useState<string>(useParams().startDate || startOfDay.toISOString());
+  const [endDate, setEndDate] = useState<string>(useParams().endDate || endOfDay.toISOString());
   const [parentTransactionId, setParentTransactionId] = useState<string | undefined>(useParams().parentTransactionId);
   const [page, setPage] = useState<string>('1');
 
@@ -165,7 +168,7 @@ export function TransactionHistory() {
           initialDateFrom={startDate}
           initialDateTo={endDate}
           align="start"
-          locale="en-GB"
+          locale="es-AR"
           showCompare={false}
         />
 
@@ -275,7 +278,7 @@ export function TransactionHistory() {
                           className="hover:underline hover:text-blue-500"
                           onClick={() => transaction.parentTransactionId && handleFilterByParentTransaction(transaction.parentTransactionId)}
                         >
-                          {transaction.parentTransactionId.slice(0, 10) + '...'}
+                          Ver hilo
                         </button>
                         <Link to={`/transactions/${transaction.parentTransactionId}`} className=" hover:text-blue-500" title="Ver transacción padre">
                           <Link2 className="w-4 h-4" />
@@ -284,7 +287,7 @@ export function TransactionHistory() {
                     ) : ''}
                   </TableCell>
                   <TableCell>{format(new Date(transaction.createdAt), "dd/MM/yyyy HH:mm:ss", { locale: es })}</TableCell>
-                  <TableCell><Link className="hover:underline hover:text-blue-500" to={`/clients/${transaction.client.id}`}>{transaction.client.name}</Link></TableCell>
+                  <TableCell><Link className="hover:underline hover:text-blue-500" to={`/clients/${transaction.client.name}`}>{transaction.client.name}</Link></TableCell>
                   <TableCell><span className={`badge badge-${transaction.state.toLowerCase()}`}>
                     <Badge variant={transaction.state === "PENDING" ? "warning" : transaction.state === "COMPLETED" ? "success" : transaction.state === "CANCELLED" ? "destructive" : "default"}>
                       {transaction.state === "PENDING" ? "Pendiente" : transaction.state === "COMPLETED" ? "Completado" : transaction.state === "CANCELLED" ? "Cancelado" : "Cuenta Corriente"}

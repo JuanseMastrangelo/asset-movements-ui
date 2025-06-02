@@ -191,26 +191,36 @@ export function TransactionHistoryDialog({ clientId, clientName, isOpen, onClose
                                     <TableCell className="w-1/4">Restan</TableCell>
                                     <TableCell className="w-1/6">
                                       {(() => {
-                                        const totalIncome = transaction.details
-                                        .filter(detail => detail.movementType === "INCOME")
-                                        .reduce((acc, detail) => acc + detail.amount, 0) - childTransactionsMap[transaction.id]?.reduce((sum, childTransaction) => {
+                                        const allowedIngressTotal = transaction.details
+                                          .find(detail => detail.movementType === "INCOME")?.amount || 0;
+                                        
+                                        const completedIngress = childTransactionsMap[transaction.id]?.reduce((sum, childTransaction) => {
                                           return sum + childTransaction.details
                                             .filter(detail => detail.movementType === "INCOME")
                                             .reduce((acc, detail) => acc + detail.amount, 0);
                                         }, 0) || 0;
-                                        return `$ ${totalIncome} ${transaction.details.find(detail => detail.movementType === "INCOME")?.asset.description}`
+
+                                        const pendingIngress = allowedIngressTotal - completedIngress;
+                                        const assetName = transaction.details.find(detail => detail.movementType === "INCOME")?.asset.name;
+                                        
+                                        return pendingIngress > 0 ? `$ ${pendingIngress.toLocaleString()} ${assetName}` : `$ 0 ${assetName}`;
                                       })()}
                                     </TableCell>
                                     <TableCell className="w-1/6">
                                       {(() => {
-                                        const totalExpense = transaction.details
-                                        .filter(detail => detail.movementType === "EXPENSE")
-                                        .reduce((acc, detail) => acc + detail.amount, 0) - childTransactionsMap[transaction.id]?.reduce((sum, childTransaction) => {
+                                        const allowedEgressTotal = transaction.details
+                                          .find(detail => detail.movementType === "EXPENSE")?.amount || 0;
+                                        
+                                        const completedEgress = childTransactionsMap[transaction.id]?.reduce((sum, childTransaction) => {
                                           return sum + childTransaction.details
                                             .filter(detail => detail.movementType === "EXPENSE")
                                             .reduce((acc, detail) => acc + detail.amount, 0);
                                         }, 0) || 0;
-                                        return `$ ${totalExpense} ${transaction.details.find(detail => detail.movementType === "EXPENSE")?.asset.description}`
+
+                                        const pendingEgress = allowedEgressTotal - completedEgress;
+                                        const assetName = transaction.details.find(detail => detail.movementType === "EXPENSE")?.asset.name;
+                                        
+                                        return pendingEgress > 0 ? `$ ${pendingEgress.toLocaleString()} ${assetName}` : `$ 0 ${assetName}`;
                                       })()}
                                     </TableCell>
                                     <TableCell className="w-1/4"></TableCell>
