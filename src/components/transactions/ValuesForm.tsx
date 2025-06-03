@@ -13,8 +13,10 @@ import { Denomination } from "@/models/denomination";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, X, TrendingUp, TrendingDown, Clock, Upload, InfoIcon } from "lucide-react";
+import { Plus, X, TrendingUp, TrendingDown, Clock, Upload, InfoIcon, CheckCircle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
 interface BillRow {
   count: string;
@@ -237,6 +239,8 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
     }
   };
 
+  console.log(transactionDetails)
+
   return (
     <>
       <div className="mb-4 text-sm border-b pb-4">
@@ -260,219 +264,234 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
           </div>
         )
       }
-
       <div className="min-h-screen">
         <div className="mx-auto max-w-7xl space-y-6">
-          
-          {/* Main Transaction Forms */}
-          <div className="grid gap-6 lg:grid-cols-2">
-            {/* Income Section */}
-            <Card className="bg-white dark:bg-gray-800 rounded-lg border">
-              <CardHeader className="bg-green-50 border-b rounded-t-lg">
-                <CardTitle className="flex items-center gap-2 text-green-800">
-                  <TrendingUp className="h-5 w-5" />
-                  Ingreso ({IngressData?.asset.name})
-                </CardTitle>
-                <CardDescription>Registra los ingresos en ({IngressData?.asset.name})</CardDescription>
-              </CardHeader>
-              <CardContent className="p-6 space-y-4">
-                {ingressRows.map((row, index) => (
-                  <div key={`ingress-${index}`} className="flex gap-3 items-end">
-                    <div className="flex-1">
-                      <Label htmlFor={`income-amount-${index}`} className="text-sm font-medium">
-                        Cantidad
-                      </Label>
-                      <Input
-                        id={`income-amount-${index}`}
-                        type="number"
-                        placeholder="0.00"
-                        value={row.count}
-                        onChange={(e) => handleIngressChange(index, { count: e.target.value, billValue: row.billValue, denominationId: row.denominationId })}
-                        className="mt-1"
-                        min={0}
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <Label htmlFor={`income-denomination-${index}`} className="text-sm font-medium">
-                        Denominación
-                      </Label>
-                      <Select onValueChange={(value) => {
-                        const [denominationId, billValue] = value.split("|");
-                        handleIngressChange(index, { count: row.count, denominationId, billValue });
-                      }} value={`${row.denominationId}|${row.billValue}`}> 
-                        <SelectTrigger className="mt-1">
-                          <SelectValue placeholder="Seleccionar denominación" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {filteredIngressDenominations.map((denomination) => (
-                            <SelectItem key={denomination.id} value={`${denomination.id}|${denomination.value.toString()}`}>
-                              {denomination.value}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    {ingressRows.length > 1 && (
+
+          {
+            transactionDetails?.state !== "COMPLETED" ? (
+              <>
+                {/* Main Transaction Forms */}
+                <div className="grid gap-6 lg:grid-cols-2">
+                  {/* Income Section */}
+                  <Card className="bg-white dark:bg-gray-800 rounded-lg border">
+                    <CardHeader className="bg-green-50 border-b rounded-t-lg">
+                      <CardTitle className="flex items-center gap-2 text-green-800">
+                        <TrendingUp className="h-5 w-5" />
+                        Ingreso ({IngressData?.asset.name})
+                      </CardTitle>
+                      <CardDescription>Registra los ingresos en ({IngressData?.asset.name})</CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-6 space-y-4">
+                      {ingressRows.map((row, index) => (
+                        <div key={`ingress-${index}`} className="flex gap-3 items-end">
+                          <div className="flex-1">
+                            <Label htmlFor={`income-amount-${index}`} className="text-sm font-medium">
+                              Cantidad
+                            </Label>
+                            <Input
+                              id={`income-amount-${index}`}
+                              type="number"
+                              placeholder="0.00"
+                              value={row.count}
+                              onChange={(e) => handleIngressChange(index, { count: e.target.value, billValue: row.billValue, denominationId: row.denominationId })}
+                              className="mt-1"
+                              min={0}
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <Label htmlFor={`income-denomination-${index}`} className="text-sm font-medium">
+                              Denominación
+                            </Label>
+                            <Select onValueChange={(value) => {
+                              const [denominationId, billValue] = value.split("|");
+                              handleIngressChange(index, { count: row.count, denominationId, billValue });
+                            }} value={`${row.denominationId}|${row.billValue}`}> 
+                              <SelectTrigger className="mt-1">
+                                <SelectValue placeholder="Seleccionar denominación" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {filteredIngressDenominations.map((denomination) => (
+                                  <SelectItem key={denomination.id} value={`${denomination.id}|${denomination.value.toString()}`}>
+                                    {denomination.value}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          {ingressRows.length > 1 && (
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => handleRemoveIngressRow(index)}
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {/* <div className="ml-2 text-sm">
+                            {row.count && row.billValue && (
+                              <>
+                                {row.count} x {row.billValue} = {parseFloat(row.count) * parseFloat(row.billValue)}
+                              </>
+                            )}
+                          </div> */}
+                        </div>
+                      ))}
                       <Button
                         variant="outline"
-                        size="icon"
-                        onClick={() => handleRemoveIngressRow(index)}
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                        onClick={addIngressRow}
+                        className="w-full border-dashed bg-gray-50"
+                        disabled={!canAddRow(ingressRows)}
                       >
-                        <X className="h-4 w-4" />
+                        <Plus className="h-4 w-4 mr-2" />
+                        Agregar fila
                       </Button>
-                    )}
-                    {/* <div className="ml-2 text-sm">
-                      {row.count && row.billValue && (
-                        <>
-                          {row.count} x {row.billValue} = {parseFloat(row.count) * parseFloat(row.billValue)}
-                        </>
-                      )}
-                    </div> */}
-                  </div>
-                ))}
-                <Button
-                  variant="outline"
-                  onClick={addIngressRow}
-                  className="w-full border-dashed bg-gray-50"
-                  disabled={!canAddRow(ingressRows)}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Agregar fila
-                </Button>
-                <div className="mt-6 py-2">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="font-medium">Total Nuevo Ingreso:</span>
-                    <span className="font-bold">${calculateTotal(ingressRows).toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm mt-1">
-                    <span>Restante:</span>
-                    <span className="font-semibold">${pendingIngress - billDetailsIncome.reduce((total, detail) => total + (detail.quantity * detail.denomination.value), 0) - calculateTotal(ingressRows)}</span>
-                  </div>
-                  {(pendingIngress - billDetailsIncome.reduce((total, detail) => total + (detail.quantity * detail.denomination.value), 0) - calculateTotal(ingressRows) < 0) && (
-                    <div className="text-red-500 text-sm">El total de ingresos supera lo permitido.</div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                      <div className="mt-6 py-2">
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="font-medium">Total Nuevo Ingreso:</span>
+                          <span className="font-bold">${calculateTotal(ingressRows).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm mt-1">
+                          <span>Restante:</span>
+                          <span className="font-semibold">${pendingIngress - billDetailsIncome.reduce((total, detail) => total + (detail.quantity * detail.denomination.value), 0) - calculateTotal(ingressRows)}</span>
+                        </div>
+                        {(pendingIngress - billDetailsIncome.reduce((total, detail) => total + (detail.quantity * detail.denomination.value), 0) - calculateTotal(ingressRows) < 0) && (
+                          <div className="text-red-500 text-sm">El total de ingresos supera lo permitido.</div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
 
-            {/* Expense Section */}
-            <Card className=" bg-white dark:bg-gray-800 rounded-lg border">
-              <CardHeader className="bg-red-50 border-b rounded-t-lg">
-                <CardTitle className="flex items-center gap-2 text-red-800">
-                  <TrendingDown className="h-5 w-5" />
-                  Egreso ({EgressData?.asset.name})
-                </CardTitle>
-                <CardDescription>Registra los egresos en {EgressData?.asset.name}</CardDescription>
-              </CardHeader>
-              <CardContent className="p-6 space-y-4">
-                {egressRows.map((row, index) => (
-                  <div key={`egress-${index}`} className="flex gap-3 items-end">
-                    <div className="flex-1">
-                      <Label htmlFor={`expense-amount-${index}`} className="text-sm font-medium">
-                        Cantidad
-                      </Label>
-                      <Input
-                        id={`expense-amount-${index}`}
-                        type="number"
-                        placeholder="0.00"
-                        value={row.count}
-                        onChange={(e) => handleEgressChange(index, { count: e.target.value, billValue: row.billValue, denominationId: row.denominationId })}
-                        className="mt-1" 
-                        min={0}
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <Label htmlFor={`expense-denomination-${index}`} className="text-sm font-medium">
-                        Denominación
-                      </Label>
-                      <Select onValueChange={(value) => {
-                        const [denominationId, billValue] = value.split("|");
-                        handleEgressChange(index, { count: row.count, denominationId, billValue });
-                      }} value={`${row.denominationId}|${row.billValue}`}> 
-                        <SelectTrigger className="mt-1">
-                          <SelectValue placeholder="Seleccionar denominación" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {filteredEgressDenominations.map((denomination) => (
-                            <SelectItem key={denomination.id} value={`${denomination.id}|${denomination.value.toString()}`}>
-                              {denomination.value}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    {egressRows.length > 1 && (
+                  {/* Expense Section */}
+                  <Card className=" bg-white dark:bg-gray-800 rounded-lg border">
+                    <CardHeader className="bg-red-50 border-b rounded-t-lg">
+                      <CardTitle className="flex items-center gap-2 text-red-800">
+                        <TrendingDown className="h-5 w-5" />
+                        Egreso ({EgressData?.asset.name})
+                      </CardTitle>
+                      <CardDescription>Registra los egresos en {EgressData?.asset.name}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-6 space-y-4">
+                      {egressRows.map((row, index) => (
+                        <div key={`egress-${index}`} className="flex gap-3 items-end">
+                          <div className="flex-1">
+                            <Label htmlFor={`expense-amount-${index}`} className="text-sm font-medium">
+                              Cantidad
+                            </Label>
+                            <Input
+                              id={`expense-amount-${index}`}
+                              type="number"
+                              placeholder="0.00"
+                              value={row.count}
+                              onChange={(e) => handleEgressChange(index, { count: e.target.value, billValue: row.billValue, denominationId: row.denominationId })}
+                              className="mt-1" 
+                              min={0}
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <Label htmlFor={`expense-denomination-${index}`} className="text-sm font-medium">
+                              Denominación
+                            </Label>
+                            <Select onValueChange={(value) => {
+                              const [denominationId, billValue] = value.split("|");
+                              handleEgressChange(index, { count: row.count, denominationId, billValue });
+                            }} value={`${row.denominationId}|${row.billValue}`}> 
+                              <SelectTrigger className="mt-1">
+                                <SelectValue placeholder="Seleccionar denominación" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {filteredEgressDenominations.map((denomination) => (
+                                  <SelectItem key={denomination.id} value={`${denomination.id}|${denomination.value.toString()}`}>
+                                    {denomination.value}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          {egressRows.length > 1 && (
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => handleRemoveEgressRow(index)}
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {/* <div className="ml-2 text-sm">
+                            {row.count && row.billValue && (
+                              <>
+                                {row.count} x {row.billValue} = {parseFloat(row.count) * parseFloat(row.billValue)}
+                              </>
+                            )}
+                          </div> */}
+                        </div>
+                      ))}
                       <Button
                         variant="outline"
-                        size="icon"
-                        onClick={() => handleRemoveEgressRow(index)}
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                        onClick={addEgressRow}
+                        className="w-full border-dashed bg-gray-50"
+                        disabled={!canAddRow(egressRows)}
                       >
-                        <X className="h-4 w-4" />
+                        <Plus className="h-4 w-4 mr-2" />
+                        Agregar fila
                       </Button>
-                    )}
-                    {/* <div className="ml-2 text-sm">
-                      {row.count && row.billValue && (
-                        <>
-                          {row.count} x {row.billValue} = {parseFloat(row.count) * parseFloat(row.billValue)}
-                        </>
-                      )}
-                    </div> */}
-                  </div>
-                ))}
-                <Button
-                  variant="outline"
-                  onClick={addEgressRow}
-                  className="w-full border-dashed bg-gray-50"
-                  disabled={!canAddRow(egressRows)}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Agregar fila
-                </Button>
-                <div className="mt-6 py-2">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="font-medium">Total Nuevo Egreso:</span>
-                    <span className="font-bold">${calculateTotal(egressRows).toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm mt-1">
-                    <span>Restante:</span>
-                    <span className="font-semibold">${pendingEgress - billDetailsEgress.reduce((total, detail) => total + (detail.quantity * detail.denomination.value), 0) - calculateTotal(egressRows)}</span>
-                  </div>
-                  {(pendingEgress - billDetailsEgress.reduce((total, detail) => total + (detail.quantity * detail.denomination.value), 0) - calculateTotal(egressRows) < 0) && (
-                    <div className="text-red-500 text-sm">El total de egreso supera lo permitido.</div>
-                  )}
+                      <div className="mt-6 py-2">
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="font-medium">Total Nuevo Egreso:</span>
+                          <span className="font-bold">${calculateTotal(egressRows).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm mt-1">
+                          <span>Restante:</span>
+                          <span className="font-semibold">${pendingEgress - billDetailsEgress.reduce((total, detail) => total + (detail.quantity * detail.denomination.value), 0) - calculateTotal(egressRows)}</span>
+                        </div>
+                        {(pendingEgress - billDetailsEgress.reduce((total, detail) => total + (detail.quantity * detail.denomination.value), 0) - calculateTotal(egressRows) < 0) && (
+                          <div className="text-red-500 text-sm">El total de egreso supera lo permitido.</div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
 
-          {/* Transaction Notes */}
-          <Card className="bg-white dark:bg-gray-800 rounded-lg border">
-            <CardHeader>
-              <CardTitle className="text-gray-800 dark:text-white">Nota de la Transacción</CardTitle>
-              <CardDescription>Agrega detalles adicionales sobre esta transacción</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                placeholder="Agregar una nota..."
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                className="min-h-[100px] resize-none"
-              />
-            </CardContent>
-          </Card>
+                {/* Transaction Notes */}
+                <Card className="bg-white dark:bg-gray-800 rounded-lg border">
+                  <CardHeader>
+                    <CardTitle className="text-gray-800 dark:text-white">Nota de la Transacción</CardTitle>
+                    <CardDescription>Agrega detalles adicionales sobre esta transacción</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Textarea
+                      placeholder="Agregar una nota..."
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                      className="min-h-[100px] resize-none"
+                    />
+                  </CardContent>
+                </Card>
 
-          
-          {/* Action Buttons */}
-          <div className="flex gap-4 justify-end">
-            <Button size="lg" className="w-full py-5 text-xl" onClick={() => handleSubmit(false)}
-            disabled={isSubmitting || (Number(calculateTotal(ingressRows).toFixed(2)) === 0 && Number(calculateTotal(egressRows).toFixed(2)) === 0)}>
-              <Upload className="h-4 w-4 mr-2" />
-              Realizar Carga de valores
-            </Button>
-            {error && <div className="text-red-500 text-sm">{error}</div>}
-          </div>
+                
+                {/* Action Buttons */}
+                <div className="flex gap-4 justify-end">
+                  <Button size="lg" className="w-full py-5 text-xl" onClick={() => handleSubmit(false)}
+                  disabled={isSubmitting || (Number(calculateTotal(ingressRows).toFixed(2)) === 0 && Number(calculateTotal(egressRows).toFixed(2)) === 0)}>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Realizar Carga de valores
+                  </Button>
+                  {error && <div className="text-red-500 text-sm">{error}</div>}
+                </div>
+              </>
+            ) : (
+              <div className="flex justify-center flex-col items-center gap-2">
+                <div className="flex items-center gap-2 py-4 bg-green-500 px-4 rounded-lg text-white">
+                  <CheckCircle className="h-7 w-7 mr-2" />
+                  <p className="text-lg font-medium   flex items-center gap-2">
+                    Transacción completada
+                  </p>
+                </div>
+                <p>Finalizada el {format(new Date(transactionDetails.updatedAt), "dd/MM/yyyy HH:mm", { locale: es })}</p>
+              </div>
+            )
+          }
 
           {/* General Summary */}
           <Card className="bg-white dark:bg-gray-800 rounded-lg mt-24 border">

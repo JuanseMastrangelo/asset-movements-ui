@@ -21,7 +21,7 @@ import { es } from "date-fns/locale";
 import { Transaction } from "@/models/transaction";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 interface TransactionHistoryDialogProps {
   clientId: string;
@@ -109,6 +109,7 @@ export function TransactionHistoryDialog({ clientId, clientName, isOpen, onClose
                           </div>
                         </TableCell>
                         <TableCell className="w-1/5">
+                          <Link to={`/transactions/${transaction.id}?step=values`}>
                           <Badge
                             variant={
                               transaction.state === "COMPLETED"
@@ -124,6 +125,7 @@ export function TransactionHistoryDialog({ clientId, clientName, isOpen, onClose
                               ? "Cuenta Corriente"
                               : "Pendiente"}
                           </Badge>
+                          </Link>
                         </TableCell>
                         <TableCell className="w-1/6">
                           {transaction.details
