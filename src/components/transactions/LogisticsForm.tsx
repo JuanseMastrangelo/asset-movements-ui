@@ -26,7 +26,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon, Printer } from "lucide-react";
+import { CalendarIcon, Printer, Route, MapPin, DollarSign, Users, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useState, useEffect } from "react";
@@ -35,7 +35,7 @@ import { useParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from 'sonner';
-import { Badge } from "../ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 const logisticsSchema = z.object({
   deliveryDate: z.date().optional(),
@@ -213,46 +213,147 @@ export function LogisticsForm() {
   }
 
   if (logisticDetails) {
-    // Mostrar detalles de logística si ya existe
+    // Vista de detalles con el nuevo diseño
     return (
-      <div className="p-6 ">
-        <h2 className="text-2xl font-bold mb-4">Detalles de Logística</h2>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="pb-2 flex justify-between"><strong className="font-semibold">Dirección de Origen:</strong> <span>{logisticDetails.originAddress}</span></div>
-          <div className="pb-2 flex justify-between"><strong className="font-semibold">Dirección de Destino:</strong> <span>{logisticDetails.destinationAddress}</span></div>
-          <div className="pb-2 flex justify-between"><strong className="font-semibold">Distancia:</strong> <span>{logisticDetails.distance} km</span></div>
-          <div className="pb-2 flex justify-between"><strong className="font-semibold text-lg">Precio:</strong> <span className="text-lg text-green-600 font-bold">$ {logisticDetails.price} ARS</span></div>
-          <div className="pb-2 flex justify-between"><strong className="font-semibold">Precio por Km:</strong> <span>{logisticDetails.pricePerKm} ARS</span></div>
-          <div className="pb-2 flex justify-between"><strong className="font-semibold">Fecha de Entrega:</strong> <span>{format(new Date(logisticDetails.deliveryDate), "PPP", { locale: es })}</span></div>
-          <div className="pb-2 flex justify-between"><strong className="font-semibold">Nota:</strong> <span>{logisticDetails.note}</span></div>
-          <div className="pb-2 flex justify-between"><strong className="font-semibold">Responsabilidad de Pago:</strong> 
-            <span>{logisticDetails.paymentResponsibility === "CLIENT" ? "Cliente" : logisticDetails.paymentResponsibility === "SHARED" ? "Compartido" : "Sistema"}</span>
+      <div className="mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Detalles de Logística</h1>
+            <p className="text-sm text-gray-600 mt-1">Resumen completo del envío y costos asociados</p>
           </div>
-          <div className="pb-2 flex justify-between items-center"><strong className="font-semibold">Estado:</strong> 
-            <Badge variant={logisticDetails.status === "PENDING" ? "default" : logisticDetails.status === "IN_PROGRESS" ? "secondary" : logisticDetails.status === "COMPLETED" ? "success" : "destructive"}>
-              {logisticDetails.status === "PENDING" ? "Pendiente" : logisticDetails.status === "IN_PROGRESS" ? "En Progreso" : logisticDetails.status === "COMPLETED" ? "Completado" : "Cancelado"}
-            </Badge>
+          
+          <div className="flex-1 max-w-xs">
+            <p className="text-sm font-medium text-gray-700 mb-2">Estado del Envío</p>
+            <Select defaultValue={logisticDetails.status} onValueChange={updateLogisticStatus}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="PENDING">Pendiente</SelectItem>
+                <SelectItem value="IN_PROGRESS">En Proceso</SelectItem>
+                <SelectItem value="COMPLETED">Completado</SelectItem>
+                <SelectItem value="CANCELED">Cancelado</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
-        <div className="flex gap-4 flex-row justify-between mt-5">
-          <div className="flex items-center gap-2">
-            Estado: 
-          <Select
-            defaultValue={logisticDetails.status}
-            onValueChange={(newStatus) => updateLogisticStatus(newStatus)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Seleccionar estado" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="PENDING">Pendiente</SelectItem>
-              <SelectItem value="IN_PROGRESS">En Progreso</SelectItem>
-              <SelectItem value="COMPLETED">Completado</SelectItem>
-              <SelectItem value="CANCELED">Cancelado</SelectItem>
-            </SelectContent>
-          </Select>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Información de Ruta */}
+          <div className="border rounded-lg bg-white">
+            <div className="p-4 border-b flex items-center gap-2 text-lg font-semibold">
+              <Route className="h-5 w-5 text-blue-600" /> Información de Ruta
+            </div>
+            <div className="p-4 space-y-4">
+              <div className="flex items-start gap-3">
+                <MapPin className="h-4 w-4 text-green-600 mt-1 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-700">Dirección de Origen</p>
+                  <p className="text-sm text-gray-600">{logisticDetails.originAddress}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <MapPin className="h-4 w-4 text-red-600 mt-1 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-700">Dirección de Destino</p>
+                  <p className="text-sm text-gray-600">{logisticDetails.destinationAddress}</p>
+                </div>
+              </div>
+              <Separator />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Distancia Total</p>
+                  <p className="text-lg font-semibold text-gray-900">{logisticDetails.distance} km</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Precio por Km</p>
+                  <p className="text-lg font-semibold text-gray-900">{logisticDetails.pricePerKm} ARS</p>
+                </div>
+              </div>
+            </div>
           </div>
-          <Button variant="default" onClick={downloadLogisticsTxt}><Printer className="w-4 h-4 mr-2" />Imprimir resumen</Button>
+
+          {/* Información Financiera */}
+          <div className="border rounded-lg bg-white">
+            <div className="p-4 border-b flex items-center gap-2 text-lg font-semibold">
+              <DollarSign className="h-5 w-5 text-green-600" /> Información Financiera
+            </div>
+            <div className="p-4 space-y-4">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <p className="text-sm font-medium text-green-700">Precio Total</p>
+                <p className="text-2xl font-bold text-green-800">${logisticDetails.price} ARS</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <Users className="h-4 w-4 text-blue-600" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-700">Responsabilidad de Pago</p>
+                  <p className="text-sm text-gray-600">{
+                    logisticDetails.paymentResponsibility === "CLIENT"
+                      ? "Cliente"
+                      : logisticDetails.paymentResponsibility === "SHARED"
+                      ? "Compartido"
+                      : "Sistema"
+                  }</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <CalendarIcon className="h-4 w-4 text-purple-600" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-700">Fecha de Entrega</p>
+                  <p className="text-sm text-gray-600">{format(new Date(logisticDetails.deliveryDate), "PPP", { locale: es })}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Notas y Estado */}
+        <div className="border rounded-lg bg-white">
+          <div className="p-4 border-b flex items-center gap-2 text-lg font-semibold">
+            <FileText className="h-5 w-5 text-gray-600" /> Notas y Estado
+          </div>
+          <div className="p-4 space-y-4">
+            <div>
+              <p className="text-sm font-medium text-gray-700 mb-2">Notas Adicionales</p>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 min-h-[60px]">
+                <p className="text-sm text-gray-500 italic">{logisticDetails.note || "No hay notas adicionales para este envío"}</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div></div>
+              <div className="flex gap-2">
+                <Button className="flex items-center gap-2" variant="outline" onClick={downloadLogisticsTxt}>
+                  <Printer className="h-4 w-4" />
+                  Imprimir Resumen
+                </Button>
+                {/* <Button className="flex items-center gap-2" variant="default" onClick={() => setEditMode(true)}>
+                  Actualizar
+                </Button> */}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Resumen de Costos */}
+        <div className="border-2 border-blue-100 bg-blue-50/30 rounded-lg">
+          <div className="p-4 border-b text-lg text-blue-900 font-semibold">Resumen de Costos</div>
+          <div className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center p-3 bg-white rounded-lg border">
+                <p className="text-sm text-gray-600">Distancia</p>
+                <p className="text-xl font-bold text-gray-900">{logisticDetails.distance} km</p>
+              </div>
+              <div className="text-center p-3 bg-white rounded-lg border">
+                <p className="text-sm text-gray-600">Tarifa por Km</p>
+                <p className="text-xl font-bold text-gray-900">{logisticDetails.pricePerKm} ARS</p>
+              </div>
+              <div className="text-center p-3 bg-green-100 rounded-lg border border-green-200">
+                <p className="text-sm text-green-700">Total a Pagar</p>
+                <p className="text-xl font-bold text-green-800">${logisticDetails.price} ARS</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );

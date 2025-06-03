@@ -131,9 +131,9 @@ export function OperationForm({ onComplete, client }: OperationFormProps) {
             egressAmount: transaction.details.find(d => d.movementType === "EXPENSE")?.amount || 0,
             notes: transaction.notes || "",
           });
-          if (transaction.state !== "PENDING") {
-            setIsReadonly(true);
-          }
+          const existsChildTransactions = transaction.childTransactions.length > 0;
+          console.log(existsChildTransactions);
+          setIsReadonly(existsChildTransactions);
           setLoading(false);
         } catch (error) {
           toast.error("No se pudo cargar la transacción");

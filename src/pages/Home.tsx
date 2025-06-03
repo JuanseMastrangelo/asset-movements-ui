@@ -147,12 +147,8 @@ export default function Home() {
                               </Badge>
                             </div>
                           </TableCell>
-                          <TableCell className={cn(
-                            "text-right font-medium",
-                            asset.totalAmount < 0 && "text-red-500",
-                            asset.totalAmount > 0 && "text-green-600"
-                          )}>
-                            {formatAmount(asset.totalAmount)}
+                          <TableCell className="text-right font-medium">
+                            ${asset.totalAmount}
                           </TableCell>
                         </TableRow>
                       ))}

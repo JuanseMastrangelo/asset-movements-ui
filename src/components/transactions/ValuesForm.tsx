@@ -318,16 +318,15 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
                               </SelectContent>
                             </Select>
                           </div>
-                          {ingressRows.length > 1 && (
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => handleRemoveIngressRow(index)}
-                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          )}
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleRemoveIngressRow(index)}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                            title="Eliminar/Limpiar fila"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
                           {/* <div className="ml-2 text-sm">
                             {row.count && row.billValue && (
                               <>
@@ -408,16 +407,15 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
                               </SelectContent>
                             </Select>
                           </div>
-                          {egressRows.length > 1 && (
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => handleRemoveEgressRow(index)}
-                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          )}
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleRemoveEgressRow(index)}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                            title="Eliminar/Limpiar fila"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
                           {/* <div className="ml-2 text-sm">
                             {row.count && row.billValue && (
                               <>
@@ -472,7 +470,7 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
                 
                 {/* Action Buttons */}
                 <div className="flex gap-4 justify-end">
-                  <Button size="lg" className="w-full py-5 text-xl" onClick={() => handleSubmit(false)}
+                  <Button size="lg" className="w-full py-7 text-xl" onClick={() => handleSubmit(false)}
                   disabled={isSubmitting || (Number(calculateTotal(ingressRows).toFixed(2)) === 0 && Number(calculateTotal(egressRows).toFixed(2)) === 0)}>
                     <Upload className="h-4 w-4 mr-2" />
                     Realizar Carga de valores
@@ -518,8 +516,8 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
                           <span className="font-medium">Ingreso ({IngressData?.asset.name})</span>
                         </div>
                       </td>
-                      <td className="text-right py-4 px-4 font-semibold text-green-600">${allowedIngressTotal}</td>
-                      <td className="text-right py-4 px-4 text-gray-600 dark:text-white">${childTransactions.flatMap(transaction => transaction.details).filter(detail => detail.movementType === "INCOME").reduce((total, detail) => total + detail.amount, 0)}</td>
+                      <td className="text-right py-4 px-4 font-semibold">${allowedIngressTotal}</td>
+                      <td className="text-right py-4 px-4 font-semibold">${childTransactions.flatMap(transaction => transaction.details).filter(detail => detail.movementType === "INCOME").reduce((total, detail) => total + detail.amount, 0)}</td>
                       <td className="text-right py-4 px-4 font-semibold text-green-600">${pendingIngress}</td>
                     </tr>
                     <tr className="border-b border-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700">
@@ -529,8 +527,8 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
                           <span className="font-medium">Egreso ({EgressData?.asset.name})</span>
                         </div>
                       </td>
-                      <td className="text-right py-4 px-4 font-semibold text-red-600">${allowedEgressTotal}</td>
-                      <td className="text-right py-4 px-4 text-gray-600 dark:text-white">${childTransactions.flatMap(transaction => transaction.details).filter(detail => detail.movementType === "EXPENSE").reduce((total, detail) => total + detail.amount, 0)}</td>
+                      <td className="text-right py-4 px-4 font-semibold">${allowedEgressTotal}</td>
+                      <td className="text-right py-4 px-4 font-semibold">${childTransactions.flatMap(transaction => transaction.details).filter(detail => detail.movementType === "EXPENSE").reduce((total, detail) => total + detail.amount, 0)}</td>
                       <td className="text-right py-4 px-4 font-semibold text-red-600">${pendingEgress}</td>
                     </tr>
                   </tbody>
