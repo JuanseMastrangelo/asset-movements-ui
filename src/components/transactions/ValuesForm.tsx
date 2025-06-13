@@ -17,6 +17,7 @@ import { Plus, X, TrendingUp, TrendingDown, Clock, Upload, InfoIcon, CheckCircle
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface BillRow {
   count: string;
@@ -38,6 +39,8 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
   const [error, setError] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [note, setNote] = useState<string>("");
+  const [showAccountDialog, setShowAccountDialog] = useState(false);
+  const [isChangingAccount, setIsChangingAccount] = useState(false);
 
   // const CABLE_TRAER_ASSET_ID = import.meta.env.VITE_CABLE_TRAER_ASSET_ID;
   // const CABLE_LLEVAR_ASSET_ID = import.meta.env.VITE_CABLE_LLEVAR_ASSET_ID;
@@ -239,7 +242,23 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
     }
   };
 
+  const handleChangeToCurrentAccount = async () => {
+    if (!params.id) return;
+    setIsChangingAccount(true);
+    try {
+      await api.patch(`/transactions/${params.id}/current-account`);
+      toast.success("La transacción ha sido cambiada a Cuenta Corriente");
+      setShowAccountDialog(false);
+      refetchTransactionDetails();
+    } catch (error) {
+      // Manejo de error
+    } finally {
+      setIsChangingAccount(false);
+    }
+  };
+
   console.log(transactionDetails)
+
 
   return (
     <>
@@ -264,6 +283,42 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
           </div>
         )
       }
+
+
+      {
+        transactionDetails?.state === "PENDING" ?
+        <>
+          <div className="flex justify-center">
+            <Button onClick={() => setShowAccountDialog(true)} disabled={isChangingAccount}>Confirmar transacción</Button>
+          </div>
+          <Dialog open={showAccountDialog} onOpenChange={setShowAccountDialog}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Confirmar cambio de estado</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-2">
+                <p className="text-base font-semibold text-gray-800">¿Desea cambiar el estado de esta transacción?</p>
+                <p className="text-sm text-gray-600">
+                  Esta acción cambiará el estado de la transacción de <b>Pendiente</b> a <b>Cuenta Corriente</b>.<br/>
+                  <span className="text-red-600 font-medium">Esto impactará directamente en la cuenta corriente del cliente.</span>
+                </p>
+                <p className="text-xs text-gray-500 mt-2">
+                  Una vez confirmada, la transacción no podrá volver a estado "Pendiente" y los saldos del cliente se actualizarán automáticamente.
+                </p>
+              </div>
+              <div className="flex justify-end gap-2 mt-4">
+                <Button variant="outline" onClick={() => setShowAccountDialog(false)} disabled={isChangingAccount}>
+                  Cancelar
+                </Button>
+                <Button variant="destructive" onClick={handleChangeToCurrentAccount} disabled={isChangingAccount}>
+                  Confirmar
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </>
+        :
+        
       <div className="min-h-screen">
         <div className="mx-auto max-w-7xl space-y-6">
 
@@ -470,7 +525,10 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
                 
                 {/* Action Buttons */}
                 <div className="flex gap-4 justify-end">
-                  <Button size="lg" className="w-full py-7 text-xl" onClick={() => handleSubmit(false)}
+                  <Button size="lg" className="w-full py-7 text-xl" onClick={() => {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    handleSubmit(false);
+                  }}
                   disabled={isSubmitting || (Number(calculateTotal(ingressRows).toFixed(2)) === 0 && Number(calculateTotal(egressRows).toFixed(2)) === 0)}>
                     <Upload className="h-4 w-4 mr-2" />
                     Realizar Carga de valores
@@ -597,6 +655,7 @@ const ValuesForm: React.FC<ValuesFormProps> = ({ onComplete }) => {
 
         </div>
       </div>
+      }
     </>
   );
 };

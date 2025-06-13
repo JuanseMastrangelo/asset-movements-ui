@@ -392,6 +392,10 @@ export const transactionsService = {
     const { data } = await api.patch(`/logistics/${logisticId}`, { status });
     return data;
   },
+  changeToCurrentAccount: async (transactionId: string) => {
+    const { data } = await api.patch(`/transactions/${transactionId}/current-account`);
+    return data;
+  },
 }; 
 
 export const auditService = {

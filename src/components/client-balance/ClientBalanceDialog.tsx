@@ -13,6 +13,7 @@ import {
   TableRow,
 } from '../ui/table';
 import { Button } from '../ui/button';
+import { formatAmount } from '@/lib/utils';
 
 interface ClientBalanceDialogProps {
   clientId: string;
@@ -82,6 +83,16 @@ export const ClientBalanceDialog: React.FC<ClientBalanceDialogProps> = ({ client
           </div>
         ) : (
           <div>
+            <div className="flex gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded bg-green-500"></div>
+                <span className="text-sm">Cliente debe</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded bg-red-500"></div>
+                <span className="text-sm">Sistema debe</span>
+              </div>
+            </div>
             <Table className="w-full mt-4">
               <TableHeader>
                 <TableRow>
@@ -98,7 +109,7 @@ export const ClientBalanceDialog: React.FC<ClientBalanceDialogProps> = ({ client
                     <TableCell>{balance.asset.description}</TableCell>
                     <TableCell>{balance.asset.type === 'PHYSICAL' ? 'Físico' : 'Digital'}</TableCell>
                     <TableCell className={balance.balance === 0 ? 'text-black' : balance.balance < 0 ? 'text-red-500' : 'text-green-700'}>
-                      {balance.balance === 0 ? '' : balance.balance < 0 ? `${balance.balance} (sistema debe)` : `${balance.balance} (cliente debe)`}
+                      {balance.balance === 0 ? '0' : balance.balance < 0 ? `${formatAmount(balance.balance)}` : `${formatAmount(balance.balance)}`}
                     </TableCell>
                   </TableRow>
                 ))}

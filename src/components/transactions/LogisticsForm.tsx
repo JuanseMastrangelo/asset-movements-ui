@@ -36,6 +36,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from 'sonner';
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const logisticsSchema = z.object({
   deliveryDate: z.date().optional(),
@@ -71,6 +77,8 @@ export function LogisticsForm() {
   const [isPriceButtonEnabled, setIsPriceButtonEnabled] = useState(false);
   const [isLinkButtonEnabled, setIsLinkButtonEnabled] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [showAccountDialog, setShowAccountDialog] = useState(false);
+  const [isChangingAccount, setIsChangingAccount] = useState(false);
 
   useEffect(() => {
     // Obtener servicios de logística
@@ -207,6 +215,18 @@ export function LogisticsForm() {
     }
   };
 
+  const handleChangeToCurrentAccount = async () => {
+    setIsChangingAccount(true);
+    try {
+      await transactionsService.updateLogisticStatus(logisticDetails!.id!, "CURRENT_ACCOUNT");
+      toast.success("Estado actualizado correctamente");
+      checkLogistic();
+      setShowAccountDialog(false);
+    } catch (error) {
+    } finally {
+      setIsChangingAccount(false);
+    }
+  };
 
   if (!id) {
     return <div>No se encontró la transacción</div>;
@@ -355,6 +375,32 @@ export function LogisticsForm() {
             </div>
           </div>
         </div>
+
+        <Dialog open={showAccountDialog} onOpenChange={setShowAccountDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirmar cambio de estado</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-2">
+              <p className="text-base font-semibold text-gray-800">¿Desea cambiar el estado de esta transacción?</p>
+              <p className="text-sm text-gray-600">
+                Esta acción cambiará el estado de la transacción de <b>Pendiente</b> a <b>Cuenta Corriente</b>.<br/>
+                <span className="text-red-600 font-medium">Esto impactará directamente en la cuenta corriente del cliente.</span>
+              </p>
+              <p className="text-xs text-gray-500 mt-2">
+                Una vez confirmada, la transacción no podrá volver a estado "Pendiente" y los saldos del cliente se actualizarán automáticamente.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2 mt-4">
+              <Button variant="outline" onClick={() => setShowAccountDialog(false)} disabled={isChangingAccount}>
+                Cancelar
+              </Button>
+              <Button variant="destructive" onClick={handleChangeToCurrentAccount} disabled={isChangingAccount}>
+                Confirmar
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }

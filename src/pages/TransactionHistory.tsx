@@ -260,8 +260,7 @@ export function TransactionHistory() {
               <TableHead>Fecha y Hora</TableHead>
               <TableHead>Cliente</TableHead>
               <TableHead>Estado</TableHead>
-              <TableHead>Ingreso</TableHead>
-              <TableHead>Egreso</TableHead>
+              <TableHead>Ingresa / Egresa</TableHead>
               <TableHead>Nota</TableHead>
               <TableHead>Acciones</TableHead>
             </TableRow>
@@ -293,8 +292,25 @@ export function TransactionHistory() {
                       {transaction.state === "PENDING" ? "Pendiente" : transaction.state === "COMPLETED" ? "Completado" : transaction.state === "CANCELLED" ? "Cancelado" : "Cuenta Corriente"}
                     </Badge>
                   </span></TableCell>
-                  <TableCell>{transaction.details.find(detail => detail.movementType === 'INCOME')?.asset.name || '-'}</TableCell>
-                  <TableCell>{transaction.details.find(detail => detail.movementType === 'EXPENSE')?.asset.name || '-'}</TableCell>
+                  <TableCell>
+                    {(() => {
+                      const income = transaction.details.find(detail => detail.movementType === 'INCOME');
+                      const expense = transaction.details.find(detail => detail.movementType === 'EXPENSE');
+                      if (transaction.parentTransactionId) {
+                        if (income) {
+                          return <span className="text-green-500">{`Ingresaron ${income.amount} ${income.asset.name}`}</span>;
+                        } else if (expense) {
+                          return <span className="text-red-500">{`Egresaron ${expense.amount} ${expense.asset.name}`}</span>;
+                        } else {
+                          return '-';
+                        }
+                      } else {
+                        const incomeText = income ? `${income.amount} ${income.asset.name}` : '-';
+                        const expenseText = expense ? `${expense.amount} ${expense.asset.name}` : '-';
+                        return <span className="text-gray-900">{`${incomeText} / ${expenseText}`}</span>;
+                      }
+                    })()}
+                  </TableCell>
                   <TableCell>
                     <div className="text-center" title={transaction.notes}><FileText className="w-4 h-4" /></div>
                   </TableCell>

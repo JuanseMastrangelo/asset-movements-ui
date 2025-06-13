@@ -13,7 +13,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { cn, formatAmount } from '@/lib/utils';
 import { useState } from 'react';
 import {
   Dialog,
@@ -22,10 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
-const formatAmount = (amount: number) => {
-  const prefix = amount > 0 ? '+' : amount < 0 ? '-' : '';
-  return `${prefix}${Math.abs(amount).toLocaleString()}`;
-};
+
 
 // Primero, vamos a crear los skeletons para cada sección
 const StockSkeleton = () => (
@@ -175,6 +172,16 @@ export default function Home() {
               <CurrentAccountsSkeleton />
             ) : (
               <div className="max-h-[400px] overflow-y-auto">
+                <div className="flex gap-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded bg-green-500"></div>
+                    <span className="text-sm">Cliente debe</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded bg-red-500"></div>
+                    <span className="text-sm">Sistema debe</span>
+                  </div>
+                </div>
                 <Table>
                   <TableHeader className="sticky top-0 bg-background">
                     <TableRow>
